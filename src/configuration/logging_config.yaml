@@ -1,0 +1,36 @@
+version: 1
+disable_existing_loggers: False
+
+formatters:
+  standard:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG  # Set the desired log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    formatter: standard
+    stream: ext://sys.stdout
+
+  file:
+    class: logging.FileHandler
+    level: DEBUG
+    formatter: standard
+    filename: project.log  # Customize log file name
+
+loggers:
+  feat_eng:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: False
+
+  train_model:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: False
+
+  # ...add more loggers for other scripts
+
+root:
+    level: DEBUG
+    handlers: [console, file]

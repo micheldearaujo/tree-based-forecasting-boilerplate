@@ -1,0 +1,45 @@
+# project_config.yaml
+
+data_config:
+  period: 3600d
+  interval: 1d
+  ticker_symbol: BOVA11.SA
+  tickers_list: 
+    - BOVA11.SA
+    - BCFF11.SA
+    - TAEE4.SA
+    - EGIE3.SA
+    - BBSE3.SA
+    - CSMG3.SA
+    - PETR4.SA
+    - BRSR6.SA
+
+features_list:
+  - DAY_OF_MONTH
+  - DAY_OF_WEEK
+  - WEEK_OF_MONTH
+  - MONTH
+  - QUARTER
+  - YEAR
+  - CLOSE_LAG_1
+  - CLOSE_LAG_2
+  - CLOSE_MA_3
+
+paths:
+  root_data_path: ./data
+  raw_data_path: data/raw
+  processed_data_path: data/processed
+  output_data_path: data/output
+  models_path: ./models
+
+model_config:
+  validation_metric: MAPE
+  optimization_metric: MSE
+  model_name: Stock_Predictor
+  test_size: 0.2
+  TARGET_NAME: CLOSE
+  PREDICTED_NAME: FORECAST
+  forecast_horizon: 7
+  available_models:
+    - xgb
+    - et
