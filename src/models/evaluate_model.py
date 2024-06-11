@@ -29,10 +29,8 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
 with open("src/configuration/project_config.yaml", 'r') as f:  
 
     config = yaml.safe_load(f.read())
-
-
-PROCESSED_DATA_PATH = config['paths']['processed_data_path']
-OUTPUT_DATA_PATH = config['paths']['output_data_path']
+    PROCESSED_DATA_PATH = config['paths']['processed_data_path']
+    OUTPUT_DATA_PATH = config['paths']['output_data_path']
 
 
 def evaluate_and_store_performance(model_type, ticker_symbol, y_true, y_pred, latest_price_date, latest_run_date):

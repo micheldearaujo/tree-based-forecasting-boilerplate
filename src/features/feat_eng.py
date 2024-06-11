@@ -129,11 +129,6 @@ if __name__ == '__main__':
     features_list = config['features_list']
     stock_df_feat = build_features(stock_df, features_list)
 
-    # stock_df_feat
-    # 3, 4 ,5, 6, 7, 10, 11
-    # max_date = pd.to_datetime('2024-06-1')
-    # stock_df_feat = stock_df_feat[stock_df_feat['DATE'] <= max_date]
-
     write_dataset_to_file(stock_df_feat, PROCESSED_DATA_PATH, "processed_stock_prices")
 
     logger.debug("Features built successfully!")

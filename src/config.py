@@ -4,6 +4,7 @@
 # ------------------------
 
 
+import asyncio
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -11,40 +12,31 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 from datetime import date
-import pandas_datareader as web
 import yfinance as yfin
 import datetime as dt
 import sys
 import os
 import logging
 from joblib import load, dump
-import asyncio
 from scipy.stats import uniform, randint
 
 # Time Series Libraries
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import STL, seasonal_decompose
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf  #Autocorrelação (MA), Autocorrelatcao parcial (AR)ve
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from pmdarima.arima.utils import ndiffs 
 
 # Machine Learning Libraries
 from sklearn.model_selection import train_test_split, TimeSeriesSplit, RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 import xgboost as xgb
-from hyperopt import fmin, tpe, Trials, hp, SparkTrials, space_eval, STATUS_OK, rand, Trials
+# from hyperopt import fmin, tpe, Trials, hp, SparkTrials, space_eval, STATUS_OK, rand, Trials
 
 # front-end
 import streamlit as st
 import altair as alt
 import plotly.express as px
-
-# MLOps
-import mlflow
-import mlflow.sklearn
-from mlflow.models.signature import infer_signature
-from mlflow import MlflowClient
-
 
 plt.style.use("fivethirtyeight")
 
@@ -96,19 +88,19 @@ xgb_base_params = {
     'gamma': 0.01
 }
 
-xgb_param_space_hpt = {
-    'max_depth': hp.choice('max_depth', [1, 2, 4, 9, 11, 30]),
-    'learning_rate': hp.choice('learning_rate', [0.01, 0.03, 0.05, 0.08 ,0.1, 0.5, 1.0]),
-    'gamma': hp.choice('gamma', [0.005, 0.01, 0.08, 0.1, 1.0]),
-    'reg_lambda': hp.choice('reg_lambda', [1, 10, 30, 40, 50, 60]),
-    'n_estimators': hp.choice('n_estimators', [40, 150, 180, 200, 230, 250, 300]),
-    'scale_pos_weight': hp.choice('scale_pos_weight', [2, 3, 4, 10, 15, 17, 20, 25, 30]),
-    'colsample_bytree': hp.choice('colsample_bytree', [0.8, 1.0]),
-    'min_child_weight': hp.choice('min_child_weight', [1, 2, 4, 7, 8, 10]),
-    'subsample': hp.choice('subsample', [0.8, 1.0]),
-    'reg_alpha': hp.choice('reg_alpha', [0.01, 0.1, 0.25, 0.5, 1.0]),
+# xgb_param_space_hpt = {
+#     'max_depth': hp.choice('max_depth', [1, 2, 4, 9, 11, 30]),
+#     'learning_rate': hp.choice('learning_rate', [0.01, 0.03, 0.05, 0.08 ,0.1, 0.5, 1.0]),
+#     'gamma': hp.choice('gamma', [0.005, 0.01, 0.08, 0.1, 1.0]),
+#     'reg_lambda': hp.choice('reg_lambda', [1, 10, 30, 40, 50, 60]),
+#     'n_estimators': hp.choice('n_estimators', [40, 150, 180, 200, 230, 250, 300]),
+#     'scale_pos_weight': hp.choice('scale_pos_weight', [2, 3, 4, 10, 15, 17, 20, 25, 30]),
+#     'colsample_bytree': hp.choice('colsample_bytree', [0.8, 1.0]),
+#     'min_child_weight': hp.choice('min_child_weight', [1, 2, 4, 7, 8, 10]),
+#     'subsample': hp.choice('subsample', [0.8, 1.0]),
+#     'reg_alpha': hp.choice('reg_alpha', [0.01, 0.1, 0.25, 0.5, 1.0]),
 
-}
+# }
 
 et_param_space = {
     'n_estimators': [100, 200, 400],
