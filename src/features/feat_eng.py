@@ -7,8 +7,6 @@ import logging.config
 import yaml
 
 import pandas as pd
-import datetime as dt
-from dateutil.relativedelta import relativedelta
 
 from src.utils import write_dataset_to_file
 
@@ -16,7 +14,6 @@ from src.utils import write_dataset_to_file
 with open("src/configuration/project_config.yaml", 'r') as f:  
 
     config = yaml.safe_load(f.read())
-
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
 
@@ -116,7 +113,6 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool = True)
     return final_df_featurized
 
 
-
 if __name__ == '__main__':
 
     RAW_DATA_PATH = config['paths']['raw_data_path']
@@ -135,5 +131,4 @@ if __name__ == '__main__':
     logger.debug(f"\n{stock_df_feat.tail()}")
     logger.debug(f"Dataset shape: {stock_df_feat.shape}.")
     logger.debug(f"Amount of ticker symbols: {stock_df_feat['STOCK'].nunique()}.")
-    
     logger.info("Finished featurizing the dataset!")

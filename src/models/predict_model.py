@@ -7,51 +7,41 @@ import warnings
 import yaml
 import argparse
 import logging
+import logging.config
 from typing import Any
 import datetime as dt
-from dateutil.relativedelta import relativedelta
 
 import pandas as pd
 import numpy as np
 import xgboost as xgb
 import matplotlib.pyplot as plt
-from joblib import load, dump
-
-from src.utils import (
-    weekend_adj_forecast_horizon,
-    write_dataset_to_file
-)
+import joblib
 
 from src.features.feat_eng import create_date_features
-# from src.models.evaluate_model import evaluate_and_store_performance
-
-warnings.filterwarnings("ignore")
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
-
-    loggin_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(loggin_config)
+    logging_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
-
     config = yaml.safe_load(f.read())
-
-
 
 def load_production_model_sklearn(model_type, ticker_symbol):
     """
     Loading the Sklearn models saved using the traditional Joblib format.
     """
     MODELS_PATH = config['paths']['models_path']
-    model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.model"
+    model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.joblib"
 
-    if model_type == 'xgb':
-        current_prod_model = xgb.XGBRegressor()
-        current_prod_model._Booster = xgb.Booster()
-        current_prod_model._Booster.load_model(model_file_path)
-    else:  
-        current_prod_model = load(model_file_path)
+    current_prod_model = joblib.load(model_file_path)
+
+    # if model_type == 'xgb':
+    #     current_prod_model = xgb.XGBRegressor()
+    #     current_prod_model._Booster = xgb.Booster()
+    #     current_prod_model._Booster.load_model(model_file_path)
+    # else:  
+    #     current_prod_model = joblib.load(model_file_path)
 
     return current_prod_model
 
@@ -247,7 +237,7 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
     PROCESSED_DATA_PATH = config['paths']['processed_data_path']
     OUTPUT_DATA_PATH = config['paths']['output_data_path']
 
-    logger.info("Loading the featurized dataset...")
+    logger.debug("Loading the featurized dataset...")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
     
     final_predictions_df = pd.DataFrame()
@@ -262,7 +252,7 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
         raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
     
     elif model_type:
-        available_models = [model_type]
+        available_models = [model_type.upper()]
 
     for ticker_symbol in stock_df_feat_all["STOCK"].unique():
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["STOCK"] == ticker_symbol].copy()
@@ -281,7 +271,7 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
                 future_df=future_df,
                 past_target_values=list(stock_df_feat[TARGET_NAME].values)
             )
-            predictions_df['MODEL_TYPE'] = model_type.upper()
+            predictions_df['MODEL_TYPE'] = model_type
             final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
 
     # Add the run date
@@ -297,7 +287,6 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
         else:
             final_predictions_df.to_csv(file_path, index=False)
 
-        # write_dataset_to_file(final_predictions_df, OUTPUT_DATA_PATH, "output_stock_prices")
         logger.info("Predictions written successfully!")
 
     return final_predictions_df
@@ -323,7 +312,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-w", "--write_to_table",
         action="store_false",
-        help="Enable Writing the OFS forecasts to table."
+        help="Disable Writing the OFS forecasts to table. Defaults to True. Run '--write_to_table' to Disable."
     )
     args = parser.parse_args()
 

@@ -1,7 +1,7 @@
 # src/configuration/hyperparams.yaml
 
 BASE_PARAMS:
-  xgb: 
+  XGB: 
       learning_rate: 0.01
       max_depth: 11
       n_estimators: 200
@@ -12,14 +12,13 @@ BASE_PARAMS:
       colsample_bytree: 1.0
       gamma: 0.01
 
-  et: 
+  ET: 
       max_depth: 11
       n_estimators: 40
 
 
-
 PARAM_SPACES:
-  xgb: 
+  XGB: 
       min_child_weight: [None, 1, 7]
       n_estimators: [None, 40, 300]
       max_depth: [None, 3, 9]
@@ -31,7 +30,7 @@ PARAM_SPACES:
       reg_lambda: [None, 0.5, 1.0]
       seed: [42]
 
-  et: 
+  ET: 
       n_estimators: [100, 200, 400]
       max_features: [1.0, sqrt, log2]
       max_depth: [None, 3, 5, 7, 9]
@@ -39,7 +38,7 @@ PARAM_SPACES:
       min_samples_leaf: [1, 2, 4]
       bootstrap: [True, False]
 
-  lgb: 
+  LGB: 
       min_child_weight: [None, 1, 3, 5, 7]
       n_estimators: [None, 40, 100, 300]
       max_depth: [None, 3, 5, 7, 9]

@@ -1,17 +1,25 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
 sys.path.insert(0,'.')
 
+import pandas as pd
+import datetime as dt
 import yfinance as yfin
 import logging.config
 import yaml
 
-from src.utils import *
+with open("src/configuration/project_config.yaml", 'r') as f:  
+    config = yaml.safe_load(f.read())
+
+    RAW_DATA_PATH = config['paths']['raw_data_path']
+    ticker_list = config['data_config']['tickers_list']
+    PERIOD = config['data_config']['period']
+    INTERVAL = config['data_config']['interval']
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
-
-    config = yaml.safe_load(f.read())
-    logging.config.dictConfig(config)
+    logging_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
 
 
@@ -100,12 +108,9 @@ def make_dataset(ticker: str, period: str, interval: str, save_to_table: bool = 
     """
     raw_df = pd.DataFrame()
     
-    for ticker in stocks_list:
+    for ticker in ticker_list:
 
         stock_price_df = fetch_historical_stock_price_data(ticker=ticker, period=period, interval=interval)
-        # current_price_df = fetch_current_stock_price_df(ticker)
-
-        # stock_price_df = pd.concat([stock_price_df, current_price_df])
 
         raw_df = pd.concat([raw_df, stock_price_df], axis=0)
 
@@ -126,6 +131,6 @@ if __name__ == '__main__':
 
     logger.info("Downloading the raw dataset...")
 
-    stock_df = make_dataset(stocks_list, PERIOD, INTERVAL)
+    stock_df = make_dataset(ticker_list, PERIOD, INTERVAL)
 
     logger.info("Finished downloading the raw dataset!")

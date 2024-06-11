@@ -2,57 +2,52 @@
 import sys
 sys.path.insert(0,'.')
 
-from src.utils import *
-import warnings
+import os
 import yaml
 import argparse
 import logging
-from joblib import load, dump
+import logging.config
+import joblib
+
+import pandas as pd
 
 import xgboost as xgb
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 from sklearn.ensemble import ExtraTreesRegressor
-import matplotlib.pyplot as plt
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
-
-    loggin_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(loggin_config)
+    logging_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(logging_config)
+    logger = logging.getLogger(__name__)
 
 with open("src/configuration/hyperparams.yaml", 'r') as f:  
-
     hyperparams = yaml.safe_load(f.read())
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
-
-    model_config = yaml.safe_load(f.read())['model_config']
-
-logger = logging.getLogger(__name__)
-
-warnings.filterwarnings("ignore")
-        
+    config = yaml.safe_load(f.read())
+    model_config = config['model_config']
 
 def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model):
     """Trains a tree-based regression model."""
 
+    MODELS_PATH = config['paths']['models_path']
     os.makedirs(MODELS_PATH, exist_ok=True)
     os.makedirs(MODELS_PATH+f'/{model_type}', exist_ok=True)
     base_params = hyperparams['BASE_PARAMS'][model_type]
-    model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.model"
+    model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.joblib"
 
     if tune_params:
         best_params = tune_params_gridsearch(X_train, y_train, model_type, ticker_symbol)
         base_params.update(best_params)
 
-    if model_type == 'xgb':
+    if model_type == 'XGB':
         model = xgb.XGBRegressor(objective='reg:squarederror', **base_params).fit(X_train, y_train)
-        if save_model:
-            model.save_model(model_file_path)
 
     else:
         model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
-        if save_model:
-            dump(model, model_file_path)
+
+    if save_model:
+        joblib.dump(model, model_file_path)
 
     return model
 
@@ -64,7 +59,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     Args:
         X (pd.DataFrame): The input feature data
         y (pd.Series): The target values
-        model_type (str): The model to tune. Options: ['xgb', 'et']
+        model_type (str): The model to tune. Options: ['XGB', 'ET']
         ticker_symbol (str): Ticker Symbol to perform Tuning on.
         n_splits (int): Number of folds for cross-validation (default: 3)
     
@@ -72,9 +67,9 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
         best_params (dict): The best hyperparameters found by the grid search
     """
 
-    logger.info(f"Performing hyperparameter tuning for [{ticker_symbol}] using {model_type.upper()}...")
+    logger.info(f"Performing hyperparameter tuning for [{ticker_symbol}] using {model_type}...")
 
-    model = xgb.XGBRegressor() if model_type == "xgb" else ExtraTreesRegressor()
+    model = xgb.XGBRegressor() if model_type == "XGB" else ExtraTreesRegressor()
 
     param_distributions = hyperparams['PARAM_SPACES'][model_type]
 
@@ -90,7 +85,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     ).fit(X, y)
     
     best_params = grid_search.best_params_
-    logger.critical(f"Best parameters found: {best_params}")
+    logger.info(f"Best parameters found: {best_params}")
 
     return best_params
 
@@ -124,6 +119,9 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
     Raises:
         ValueError: If an invalid model type is provided.
     """
+    PROCESSED_DATA_PATH = config['paths']['processed_data_path']
+
+
     logger.debug("Loading the featurized dataset..")
     all_ticker_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
     logger.info(f"Last Available Date in Training Dataset: {all_ticker_df['DATE'].max()}")
@@ -139,7 +137,7 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
         raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
     
     elif model_type:
-        available_models = [model_type]
+        available_models = [model_type.upper()]
     
     for ticker_symbol in all_ticker_df["STOCK"].unique():
         ticker_df_feat = all_ticker_df[all_ticker_df["STOCK"] == ticker_symbol].drop("STOCK", axis=1).copy()
@@ -174,8 +172,13 @@ if __name__ == "__main__":
         help="""Ticker Symbol to train on. (optional, defaults to all).
         Example: bova11 -> BOVA11.SA | petr4 -> PETR4.SA"""
     )
+    parser.add_argument(
+        "-sm", "--save_model",
+        action="store_false",
+        help="Disable saving model to file system. Defaults to True. Run '--save_model' to Disable."
+    )
     args = parser.parse_args()
 
     logger.info("Starting the training pipeline...")
-    training_pipeline(args.tune, args.model_type, args.ticker_symbol, save_model=True)
+    training_pipeline(args.tune, args.model_type, args.ticker_symbol, args.save_model)
     logger.info("Training Pipeline completed successfully!")

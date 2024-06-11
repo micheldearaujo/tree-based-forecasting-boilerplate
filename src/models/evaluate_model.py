@@ -7,27 +7,20 @@ import yaml
 import datetime as dt
 import logging
 import argparse
+
 import pandas as pd
 import numpy as np
-from dateutil.relativedelta import relativedelta
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
-import warnings
 
-# from src.utils import *
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
+
 from src.visualization.data_viz import visualize_validation_results
 
-warnings.filterwarnings("ignore")
-
 with open("src/configuration/logging_config.yaml", 'r') as f:  
-
-    loggin_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(loggin_config)
+    logging_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
-
     config = yaml.safe_load(f.read())
     PROCESSED_DATA_PATH = config['paths']['processed_data_path']
     OUTPUT_DATA_PATH = config['paths']['output_data_path']
@@ -48,7 +41,7 @@ def evaluate_and_store_performance(model_type, ticker_symbol, y_true, y_pred, la
     
     # Prepare data for storage
     results = {
-        'EVAL_DATE': latest_price_date,#dt.datetime.today().date(),
+        'EVAL_DATE': latest_price_date,
         'RUN_DATE': latest_run_date,
         'MODEL_NAME': model_type.upper(),
         'TICKER': ticker_symbol,
@@ -116,7 +109,7 @@ def daily_model_evaluation(model_type=None, ticker_symbol=None):
                 ][PREDICTED_NAME].values[0]
 
             except:
-                logger.warning(f"\nThe last forecasts where made at {latest_run_date}, A.K.A today. Comeback tomorrow in order to calculate today's performance.")
+                logger.error(f"\nThe last forecasts where made at {latest_run_date}, A.K.A today. Comeback tomorrow in order to calculate today's performance.")
                 raise ValueError(f"\nThe last forecasts where made at {latest_run_date}, A.K.A today. Comeback tomorrow in order to calculate today's performance.")
 
             evaluate_and_store_performance(model_type, ticker_symbol, latest_value, predicted_value, latest_price_date, latest_run_date)
@@ -279,7 +272,6 @@ def model_evaluation_pipeline(tunning=False):
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
 
-# Execute the whole pipeline
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Perform Out-of-Sample Tree-based models Inference.")

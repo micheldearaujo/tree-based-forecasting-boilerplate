@@ -1,7 +1,10 @@
 import sys
 sys.path.insert(0,'.')
 
-from src.utils import *
+import streamlit as st
+import altair as alt
+import plotly.express as px
+
 from csv import writer
 from algo_trading import Trader
 import plotly.graph_objects as go

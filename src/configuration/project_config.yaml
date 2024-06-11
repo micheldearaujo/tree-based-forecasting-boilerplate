@@ -35,11 +35,11 @@ paths:
 model_config:
   validation_metric: MAPE
   optimization_metric: MSE
-  model_name: Stock_Predictor
+  model_name: The_Predictor
   test_size: 0.2
   TARGET_NAME: CLOSE
   PREDICTED_NAME: FORECAST
   forecast_horizon: 7
   available_models:
-    - xgb
-    - et
+    - XGB
+    - ET
