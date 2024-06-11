@@ -1,7 +1,7 @@
 # project_config.yaml
 
 data_config:
-  period: 3600d
+  period: 5y
   interval: 1d
   ticker_symbol: BOVA11.SA
   tickers_list: 

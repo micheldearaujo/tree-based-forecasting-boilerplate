@@ -29,6 +29,11 @@ loggers:
     handlers: [console, file]
     propagate: False
 
+  make_dataset:
+    level: INFO
+    handlers: [console, file]
+    propagate: False
+
   # ...add more loggers for other scripts
 
 root:
