@@ -11,7 +11,6 @@ import yaml
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
-
     RAW_DATA_PATH = config['paths']['raw_data_path']
     ticker_list = config['data_config']['tickers_list']
     PERIOD = config['data_config']['period']
@@ -21,7 +20,9 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
     logging_config = yaml.safe_load(f.read())
     logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
-
+    logging.getLogger('yfinance').setLevel(logging.ERROR)
+    logging.getLogger('peewee').setLevel(logging.ERROR)
+    logging.getLogger('urllib3').setLevel(logging.ERROR)
 
 def fetch_current_stock_price(ticker: str) -> float:
     """
@@ -52,12 +53,12 @@ def fetch_current_stock_price_df(ticker: str) -> pd.DataFrame:
     Returns:
         pandas.DataFrame: A DataFrame containing the current price data with 'Stock', 'Date', and 'Close' columns.
     """
-    current_price = fetch_current_stock_price(ticker)  # Reuse your existing function
+    current_price = fetch_current_stock_price(ticker)
 
     if current_price is None:
-        return pd.DataFrame()  # Return an empty DataFrame if fetching failed
+        return pd.DataFrame()
 
-    today = dt.date.today()  # Get today's date
+    today = dt.date.today()
     data = {
         "Stock": [ticker],
         "Date": [today],
@@ -109,25 +110,18 @@ def make_dataset(ticker: str, period: str, interval: str, save_to_table: bool = 
     raw_df = pd.DataFrame()
     
     for ticker in ticker_list:
-
         stock_price_df = fetch_historical_stock_price_data(ticker=ticker, period=period, interval=interval)
-
         raw_df = pd.concat([raw_df, stock_price_df], axis=0)
 
-    
     raw_df.columns = raw_df.columns.str.upper() 
-
-    # Save the dataset
     if save_to_table:
         raw_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)
 
     logger.debug(raw_df.tail())
-
     return raw_df
 
 
 if __name__ == '__main__':
-
 
     logger.info("Downloading the raw dataset...")
 
