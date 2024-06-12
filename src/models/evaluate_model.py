@@ -157,6 +157,22 @@ def update_test_values(X: pd.DataFrame, y: pd.Series, day: int) -> tuple[pd.Data
     return X_test, y_test
 
 
+def calculate_metrics(pred_df, actuals, predictions):
+    logger.debug("Calculating the evaluation metrics...")
+    
+    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
+    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
+    model_mae = round(mean_absolute_error(actuals, predictions), 2)
+    model_wape = round((pred_df.ACTUAL - pred_df.FORECAST).abs().sum() / pred_df.ACTUAL.sum(), 2)
+
+    pred_df["MAPE"] = model_mape
+    pred_df["MAE"] = model_mae
+    pred_df["WAPE"] = model_wape
+    pred_df["RMSE"] = model_rmse
+
+    return pred_df
+
+
 def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker_symbol: str, tune_params: bool = False) -> pd.DataFrame:
     """
     Make predictions for the past `forecast_horizon` days using a XGBoost model.
@@ -179,16 +195,14 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     dates = []
     X_testing_df = pd.DataFrame()
 
-    forecast_horizon = 3#weekend_adj_forecast_horizon(forecast_horizon, 2)
+    forecast_horizon = weekend_adj_forecast_horizon(forecast_horizon, 2)
     
     # get the one-shot training set
     X_train = X.iloc[:-forecast_horizon, :]
     y_train = y.iloc[:-forecast_horizon]
-
-    print(f"Last training date: {X_train["DATE"].max()}")
-    
     final_y = y_train.copy()
-    print(final_y[-2:])
+
+    logger.debug(f"Last training date: {X_train["DATE"].max().date()}")
 
     best_model = train_model(
         X_train.drop(columns=["DATE"]),
@@ -210,64 +224,34 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         # because the following ones will use the last predicted value
         # so we simulate the process of predicting out-of-sample
         if len(predictions) != 0:
-            
-            # X_test2 = X_test.copy()
-            lag_features = [feature for feature in X_test.columns if "LAG" in feature]
-            for feature in lag_features:
-                lag_value = int(feature.split("_")[-1])
-                index_to_replace = list(X_test.columns).index(feature)
-                # X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
-                X_test = update_lag_features(X_test, -1, list(final_y.values), X_test.columns)
 
-
-            moving_averages_features = [feature for feature in X_test.columns if "MA" in feature]
-            for feature in moving_averages_features:
-                ma_value = int(feature.split("_")[-1])
-                last_closing_princes_ma = final_y.rolling(ma_value).mean()
-                last_ma = last_closing_princes_ma.values[-1]
-                index_to_replace = list(X_test.columns).index(feature)
-                X_test.iat[0, index_to_replace] = last_ma
-
-            X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
-            
-        else:
-            # we jump the first iteration because we do not need to update anything.
-            
-            X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
-            pass
+            X_test = update_lag_features(X_test, -1, list(final_y.values), X_test.columns)
+            X_test = update_ma_features(X_test, -1, list(final_y.values), X_test.columns)
 
         # make prediction
-        print(f"Testing Date: {X_test["DATE"].min()}")
+        logger.debug(f"Testing Date: {X_test["DATE"].min().date()}")
         prediction = best_model.predict(X_test.drop("DATE", axis=1))
-        final_y = pd.concat([final_y, pd.Series(prediction[0])], axis=0)
-        final_y = final_y.reset_index(drop=True)
 
         # store the results
         predictions.append(prediction[0])
         actuals.append(y_test.values[0])
         dates.append(X_test["DATE"].max())
 
+        final_y = pd.concat([final_y, pd.Series(prediction[0])], axis=0)
+        final_y = final_y.reset_index(drop=True)
+        X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
+
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", "FORECAST"])
     X_testing_df["FORECAST"] = predictions
     X_testing_df.reset_index(drop=True, inplace=True)
-    print(X_testing_df)
     pred_df["FORECAST"] = pred_df["FORECAST"].astype("float64")
 
-    logger.debug("Calculating the evaluation metrics...")
-    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
-    model_mae = round(mean_absolute_error(actuals, predictions), 2)
-    model_wape = round((pred_df.ACTUAL - pred_df.FORECAST).abs().sum() / pred_df.ACTUAL.sum(), 2)
-
-    pred_df["MAPE"] = model_mape
-    pred_df["MAE"] = model_mae
-    pred_df["WAPE"] = model_wape
-    pred_df["RMSE"] = model_rmse
-    pred_df["MODEL"] = str(type(best_model)).split('.')[-1][:-2]
-
+    pred_df = calculate_metrics(pred_df, actuals, predictions)
+    pred_df["MODEL_TYPE"] = str(type(best_model)).split('.')[-1][:-2]
+    print(pred_df)
 
     # Plotting the Validation Results
-    validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, ticker_symbol)
+    # validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, ticker_symbol)
 
     # Plotting the Learning Results
     #learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=True)
@@ -284,7 +268,7 @@ def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
 
     validation_report_df = pd.DataFrame()
 
-    logger.info("Loading the featurized dataset..")
+    logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
 
     # Check the ticker_symbol parameter
@@ -320,7 +304,6 @@ def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
             validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
     
     logger.info("Writing the testing results dataframe...")
-    # validation_report_df = validation_report_df.rename(columns={"FORECAST": "Price"})
     validation_report_df["CLASS"] = "Testing"
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_results_new.csv'), index=False)
 
