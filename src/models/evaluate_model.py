@@ -118,7 +118,6 @@ def daily_model_evaluation(model_type=None, ticker_symbol=None):
             evaluate_and_store_performance(model_type, ticker_symbol, latest_value, predicted_value, latest_price_date, latest_run_date)
 
 
-
 def update_test_values(X: pd.DataFrame, y: pd.Series, day: int) -> tuple[pd.DataFrame, pd.Series]:
     """
     Prepares the feature and target data for testing on a specific day.
@@ -175,19 +174,28 @@ def calculate_metrics(pred_df, actuals, predictions):
 
 def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker_symbol: str, tune_params: bool = False) -> pd.DataFrame:
     """
-    Make predictions for the past `forecast_horizon` days using a XGBoost model.
-    This model is validated using One Shot Training, it means that we train the model
-    once, and them perform the `forecast_horizon` predictions only loading the mdoel.
-    
-    Parameters:
-        X (pandas dataframe): The input data
-        y (pandas Series): The target data
-        forecast_horizon (int): Number of days to forecast
-        
+    Performs walk-forward validation for a given model type and ticker symbol.
+
+    This function iteratively trains a model on historical data, then forecasts into the future using a sliding window approach.
+    The forecast horizon is adjusted to exclude weekends. It returns a DataFrame with the actual and predicted values, along with performance metrics.
+
+    Args:
+        X (pd.DataFrame): Feature matrix.
+        y (pd.Series): Target variable.
+        forecast_horizon (int): The number of days to forecast ahead.
+        model_type (Any): The type of model to use (e.g., 'xgb', 'rf', 'et').
+        ticker_symbol (str): The stock ticker symbol.
+        tune_params (bool, optional): Whether to perform hyperparameter tuning. Defaults to False.
+
     Returns:
-        pred_df: Pandas DataFrame with the forecasted values
+        pd.DataFrame: A DataFrame containing:
+            - DATE: The dates of the predictions.
+            - ACTUAL: The actual target values.
+            - PREDICTED_NAME: The predicted values.
+            - MODEL_TYPE: The type of model used.
+            - CLASS: "Testing" (indicates the type of data).
+            - Additional columns with performance metrics (MAE, RMSE, MAPE).
     """
-    # TODO: Continuar com a refatoração desse bloco interno
 
     # Create empty list for storing each prediction
     predictions = []
@@ -213,23 +221,15 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         save_model=False
     )
 
-    # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
-    # After forecasting the next step, we need to update the "lag" features with the last forecasted
-    # value
     for day in range(forecast_horizon, 0, -1):
-        
         X_test, y_test = update_test_values(X, y, day)
+        logger.debug(f"Testing Date: {X_test["DATE"].min().date()}")
 
-        # only the first iteration will use the true value of Close_LAG_1
-        # because the following ones will use the last predicted value
-        # so we simulate the process of predicting out-of-sample
         if len(predictions) != 0:
 
             X_test = update_lag_features(X_test, -1, list(final_y.values), X_test.columns)
             X_test = update_ma_features(X_test, -1, list(final_y.values), X_test.columns)
 
-        # make prediction
-        logger.debug(f"Testing Date: {X_test["DATE"].min().date()}")
         prediction = best_model.predict(X_test.drop("DATE", axis=1))
 
         # store the results
@@ -241,14 +241,13 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         final_y = final_y.reset_index(drop=True)
         X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
 
-    pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", "FORECAST"])
-    X_testing_df["FORECAST"] = predictions
-    X_testing_df.reset_index(drop=True, inplace=True)
-    pred_df["FORECAST"] = pred_df["FORECAST"].astype("float64")
-
+    pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", PREDICTED_NAME])
     pred_df = calculate_metrics(pred_df, actuals, predictions)
     pred_df["MODEL_TYPE"] = str(type(best_model)).split('.')[-1][:-2]
-    print(pred_df)
+    pred_df["CLASS"] = "Testing"
+    
+    X_testing_df[PREDICTED_NAME] = predictions
+    X_testing_df.reset_index(drop=True, inplace=True)
 
     # Plotting the Validation Results
     # validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, ticker_symbol)
@@ -262,6 +261,7 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
 def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
 
     TARGET_NAME = config["model_config"]["TARGET_NAME"]
+    global PREDICTED_NAME
     PREDICTED_NAME = config["model_config"]["PREDICTED_NAME"]
     FORECAST_HORIZON = config['model_config']['forecast_horizon']
     available_models = config['model_config']['available_models']
@@ -300,11 +300,9 @@ def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
 
             predictions_df["STOCK"] = ticker_symbol
             predictions_df["TRAINING_DATE"] = dt.datetime.today().date()
-
             validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
     
     logger.info("Writing the testing results dataframe...")
-    validation_report_df["CLASS"] = "Testing"
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_results_new.csv'), index=False)
 
 
