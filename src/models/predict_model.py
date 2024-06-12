@@ -150,14 +150,14 @@ def update_lag_features(future_df: pd.DataFrame, day: int, past_target_values: l
     return future_df
 
 
-def update_ma_features(future_df: pd.DataFrame, day: int, past_target_values: list, prediction: float, features: list) -> pd.DataFrame:
+def update_ma_features(future_df: pd.DataFrame, day: int, past_target_values: list, features: list) -> pd.DataFrame:
     """
     Updates moving average features in the future DataFrame
     based on past target values and the current prediction.
     """
     for feature in filter(lambda f: "MA" in f, features):
         ma_value = int(feature.split("_")[-1])
-        last_n_closing_prices = [*past_target_values[-ma_value + 1:], prediction]
+        last_n_closing_prices = past_target_values[-ma_value:]
         future_df.loc[day + 1, feature] = np.mean(last_n_closing_prices)
 
     return future_df
@@ -194,7 +194,7 @@ def make_iterative_predictions(model: Any, future_df: pd.DataFrame, past_target_
 
         if day < LAST_DAY:
             future_df_feat = update_lag_features(future_df_feat, day, past_target_values, all_features)
-            future_df_feat = update_ma_features(future_df_feat, day, past_target_values, prediction, all_features)
+            future_df_feat = update_ma_features(future_df_feat, day, past_target_values, all_features)
     
     future_df_feat["FORECAST"] = predictions
     future_df_feat["FORECAST"] = future_df_feat["FORECAST"].astype('float64').round(2)
@@ -318,5 +318,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logger.info("Starting the Inference pipeline...")
-    inference_pipeline(args.model_type, args.ticker_symbol, args.write_to_table)
+    inference_pipeline(args.model_type.upper(), args.ticker_symbol, args.write_to_table)
     logger.info("Inference Pipeline completed successfully!")

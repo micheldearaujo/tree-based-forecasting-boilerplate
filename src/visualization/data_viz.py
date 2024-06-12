@@ -79,7 +79,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
         None
     """
 
-    logger.info("Vizualizing the results...")
+    logger.debug("Vizualizing the results...")
 
     fig, axs = plt.subplots(figsize=(6, 3))
 
