@@ -15,6 +15,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
 
 from src.models.train_model import train_model
+from src.models.predict_model import update_lag_features, update_ma_features
 from src.visualization.data_viz import visualize_validation_results
 from src.utils import weekend_adj_forecast_horizon
 
@@ -117,6 +118,45 @@ def daily_model_evaluation(model_type=None, ticker_symbol=None):
             evaluate_and_store_performance(model_type, ticker_symbol, latest_value, predicted_value, latest_price_date, latest_run_date)
 
 
+
+def update_test_values(X: pd.DataFrame, y: pd.Series, day: int) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Prepares the feature and target data for testing on a specific day.
+
+    This function extracts a single row (or the remaining rows if it's the last day) 
+    from the input feature DataFrame (X) and target Series (y) to create a test set for 
+    a specific day. The day is specified relative to the end of the DataFrame, where
+    day 1 represents the last day, day 2 the second-to-last day, and so on.
+
+    Args:
+        X (pd.DataFrame): The feature DataFrame containing all historical data.
+        y (pd.Series): The target Series containing all historical target values.
+        day (int): The day to extract for testing, relative to the end of the DataFrames.
+                   1 is the last day, 2 is the second-to-last, etc.
+
+    Returns:
+        tuple[pd.DataFrame, pd.Series]: A tuple containing:
+            - X_test (pd.DataFrame): A DataFrame with the features for the specified day.
+            - y_test (pd.Series): A Series with the target value for the specified day.
+
+    Raises:
+        IndexError: If the specified `day` is out of bounds for the input DataFrames.
+    """
+    if day != 1:
+        # Select a single row using negative indexing
+        X_test = X.iloc[-day:-day+1,:]
+        y_test = y.iloc[-day:-day+1]
+
+    else:
+        # Handle the special case of the last day (day 1)
+        X_test = X.iloc[-day:,:]
+        y_test = y.iloc[-day:]
+
+    X_test.reset_index(drop=True, inplace=True)
+
+    return X_test, y_test
+
+
 def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker_symbol: str, tune_params: bool = False) -> pd.DataFrame:
     """
     Make predictions for the past `forecast_horizon` days using a XGBoost model.
@@ -139,15 +179,16 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     dates = []
     X_testing_df = pd.DataFrame()
 
-    forecast_horizon = weekend_adj_forecast_horizon(forecast_horizon, 2)
+    forecast_horizon = 3#weekend_adj_forecast_horizon(forecast_horizon, 2)
     
     # get the one-shot training set
     X_train = X.iloc[:-forecast_horizon, :]
     y_train = y.iloc[:-forecast_horizon]
 
     print(f"Last training date: {X_train["DATE"].max()}")
-
+    
     final_y = y_train.copy()
+    print(final_y[-2:])
 
     best_model = train_model(
         X_train.drop(columns=["DATE"]),
@@ -163,26 +204,20 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     # value
     for day in range(forecast_horizon, 0, -1):
         
-        if day != 1:
-            # the testing set will be the next day after the training and we use the complete dataset
-            X_test = X.iloc[-day:-day+1,:]
-            y_test = y.iloc[-day:-day+1]
+        X_test, y_test = update_test_values(X, y, day)
 
-        else:
-            # need to change the syntax for the last day (for -1:-2 will not work)
-            X_test = X.iloc[-day:,:]
-            y_test = y.iloc[-day:]
-
-        # only the first iteration will use the true value of Close_lag_1
+        # only the first iteration will use the true value of Close_LAG_1
         # because the following ones will use the last predicted value
         # so we simulate the process of predicting out-of-sample
         if len(predictions) != 0:
             
-            lag_features = [feature for feature in X_test.columns if "lag" in feature]
+            # X_test2 = X_test.copy()
+            lag_features = [feature for feature in X_test.columns if "LAG" in feature]
             for feature in lag_features:
                 lag_value = int(feature.split("_")[-1])
                 index_to_replace = list(X_test.columns).index(feature)
-                X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
+                # X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
+                X_test = update_lag_features(X_test, -1, list(final_y.values), X_test.columns)
 
 
             moving_averages_features = [feature for feature in X_test.columns if "MA" in feature]
@@ -194,11 +229,11 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
                 X_test.iat[0, index_to_replace] = last_ma
 
             X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
-
+            
         else:
             # we jump the first iteration because we do not need to update anything.
+            
             X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
-
             pass
 
         # make prediction
@@ -213,7 +248,9 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         dates.append(X_test["DATE"].max())
 
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", "FORECAST"])
-    print(pred_df)
+    X_testing_df["FORECAST"] = predictions
+    X_testing_df.reset_index(drop=True, inplace=True)
+    print(X_testing_df)
     pred_df["FORECAST"] = pred_df["FORECAST"].astype("float64")
 
     logger.debug("Calculating the evaluation metrics...")
@@ -246,7 +283,6 @@ def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
     available_models = config['model_config']['available_models']
 
     validation_report_df = pd.DataFrame()
-
 
     logger.info("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
@@ -286,7 +322,7 @@ def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
     logger.info("Writing the testing results dataframe...")
     # validation_report_df = validation_report_df.rename(columns={"FORECAST": "Price"})
     validation_report_df["CLASS"] = "Testing"
-    validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
+    validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_results_new.csv'), index=False)
 
 
 if __name__ == "__main__":
