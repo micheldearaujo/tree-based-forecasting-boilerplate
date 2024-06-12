@@ -145,6 +145,7 @@ def update_lag_features(future_df: pd.DataFrame, day: int, past_target_values: l
     for feature in filter(lambda f: "LAG" in f, features):
         lag_value = int(feature.split("_")[-1])
         future_df.loc[day + 1, feature] = past_target_values[-lag_value]
+        future_df = future_df.dropna(subset=["DATE"])
 
     return future_df
 
