@@ -1,18 +1,25 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
 sys.path.insert(0,'.')
 from xgboost import plot_importance
+
 from src.utils import *
 import logging
-import warnings
 import yaml
+import datetime as dt
+
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
 
-    config = yaml.safe_load(f.read())
-    logging.config.dictConfig(config)
-
-logger = logging.getLogger(__name__)
+    logging_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(logging_config)
+    logger = logging.getLogger(__name__)
+    logging.getLogger('matplotlib').setLevel(logging.ERROR)
 
 
 def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False) -> matplotlib.figure.Figure:
@@ -76,49 +83,49 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
 
     fig, axs = plt.subplots(figsize=(6, 3))
 
-    # Plot the Actuals
+    # Plot the ACTUALs
     sns.lineplot(
         data=pred_df,
-        x="Date",
-        y="Actual",
+        x="DATE",
+        y="ACTUAL",
         label="Testing values",
         ax=axs
     )
     sns.scatterplot(
         data=pred_df,
-        x="Date",
-        y="Actual",
+        x="DATE",
+        y="ACTUAL",
         ax=axs,
-        size="Actual",
+        size="ACTUAL",
         sizes=(80, 80), legend=False
     )
 
-    # Plot the Forecasts
+    # Plot the FORECASTs
     sns.lineplot(
         data=pred_df,
-        x="Date",
-        y="Forecast",
-        label="Forecast values",
+        x="DATE",
+        y="FORECAST",
+        label="FORECAST values",
         ax=axs
     )
     sns.scatterplot(
         data=pred_df,
-        x="Date",
-        y="Forecast",
+        x="DATE",
+        y="FORECAST",
         ax=axs,
-        size="Forecast",
+        size="FORECAST",
         sizes=(80, 80), legend=False
     )
 
-    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']} days Forecast for {stock_name}\nMAPE: {round(model_mape*100, 2)}% | MAE: R${model_mae} | WAPE: {model_wape}")
-    axs.set_xlabel("Date")
+    axs.set_title(f"Model FORECAST for {stock_name}\nMAPE: {round(model_mape*100, 2)}% | MAE: R${model_mae} | WAPE: {model_wape}")
+    axs.set_xlabel("DATE")
     axs.set_ylabel("R$")
 
     try:
         plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
 
     except FileNotFoundError:
-        logger.warning("Forecast Figure not Saved!")
+        logger.warning("FORECAST Figure not Saved!")
 
     #plt.show()
     return fig
@@ -139,17 +146,17 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
     logger.info("Vizualizing the results...")
 
     fig, axs = plt.subplots(figsize=(12, 5), dpi = 2000)
-    # Plot the Actuals
+    # Plot the ACTUALs
     sns.lineplot(
         data=historical_df,
-        x="Date",
+        x="DATE",
         y="Close",
         label="Historical values",
         ax=axs
     )
     sns.scatterplot(
         data=historical_df,
-        x="Date",
+        x="DATE",
         y="Close",
         ax=axs,
         size="Close",
@@ -157,26 +164,26 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
         legend=False
     )
 
-    # Plot the Forecasts
+    # Plot the FORECASTs
     sns.lineplot(
         data=pred_df,
-        x="Date",
-        y="Forecast",
-        label="Forecast values",
+        x="DATE",
+        y="FORECAST",
+        label="FORECAST values",
         ax=axs
     )
     sns.scatterplot(
         data=pred_df,
-        x="Date",
-        y="Forecast",
+        x="DATE",
+        y="FORECAST",
         ax=axs,
-        size="Forecast",
+        size="FORECAST",
         sizes=(80, 80),
         legend=False
     )
 
-    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']-4} days Forecast for {stock_name}")
-    axs.set_xlabel("Date")
+    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']-4} days FORECAST for {stock_name}")
+    axs.set_xlabel("DATE")
     axs.set_ylabel("R$")
 
     #plt.show()
