@@ -33,16 +33,7 @@ def load_production_model_sklearn(model_type, ticker_symbol):
     """
     MODELS_PATH = config['paths']['models_path']
     model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.joblib"
-
     current_prod_model = joblib.load(model_file_path)
-
-    # if model_type == 'xgb':
-    #     current_prod_model = xgb.XGBRegressor()
-    #     current_prod_model._Booster = xgb.Booster()
-    #     current_prod_model._Booster.load_model(model_file_path)
-    # else:  
-    #     current_prod_model = joblib.load(model_file_path)
-
     return current_prod_model
 
 
