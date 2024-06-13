@@ -123,7 +123,7 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
 
 
     logger.debug("Loading the featurized dataset..")
-    all_ticker_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
+    all_ticker_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_df.csv'), parse_dates=["DATE"])
     logger.info(f"Last Available Date in Training Dataset: {all_ticker_df['DATE'].max()}")
 
     # Check the ticker_symbol parameter
