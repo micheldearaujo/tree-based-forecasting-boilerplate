@@ -23,7 +23,7 @@ data_config:
   table_names:
     raw_table_name: raw_df.csv
     processed_table_name: processed_df.csv
-    output_table_name: output_df.csv
+    output_table_name: forecast_output_df.csv
     model_performance_table_name: model_performance_daily.csv
     cross_validation_table_name: validation_results.csv
 
@@ -45,7 +45,7 @@ model_config:
   scoring_metric: neg_mean_absolute_error
   model_name: The_Predictor
   target_col: CLOSE
-  predict_col: FORECAST
+  predicted_col: FORECAST
   category_col: TICKER
   forecast_horizon: 7
   available_models:
