@@ -13,11 +13,14 @@ import yfinance as yfin
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
     data_config = config['data_config']
+    model_config = config['model_config']
     RAW_DATA_PATH = data_config['paths']['raw_data_path']
     RAW_DATA_NAME = data_config['table_names']['raw_table_name']
     ticker_list = data_config['ticker_list']
     PERIOD = data_config['period']
     INTERVAL = data_config['interval']
+    TARGET_COL = model_config['target_col']
+    CATEGORY_COL = model_config['category_col']
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
     logging_config = yaml.safe_load(f.read())
@@ -60,9 +63,9 @@ def fetch_current_stock_price_df(ticker: str) -> pd.DataFrame:
 
     today = dt.date.today()
     data = {
-        "Ticker": [ticker],
-        "Date": [today],
-        "Close": [current_price]
+        CATEGORY_COL: [ticker],
+        "DATE": [today],
+        TARGET_COL: [current_price]
     }
 
     return pd.DataFrame(data)
@@ -84,13 +87,10 @@ def fetch_historical_stock_price_data(ticker: str, period: str, interval: str) -
 
     stock_price_df = yfin.Ticker(ticker).history(period=period, interval=interval)
     
-    stock_price_df["Ticker"] = ticker
-    stock_price_df = stock_price_df[["Ticker", "Close"]]
+    stock_price_df[CATEGORY_COL] = ticker
+    stock_price_df = stock_price_df[[CATEGORY_COL, TARGET_COL.title()]]
     stock_price_df = stock_price_df.reset_index()
-
-    stock_price_df["Date"] = pd.to_datetime(stock_price_df["Date"])
-    stock_price_df["Date"] = stock_price_df["Date"].apply(lambda x: x.date())
-    stock_price_df["Date"] = pd.to_datetime(stock_price_df["Date"])
+    stock_price_df["Date"] = pd.to_datetime(stock_price_df["Date"].dt.date)
 
     return stock_price_df
 
@@ -114,6 +114,7 @@ def make_dataset(ticker: str, period: str, interval: str, save_to_table: bool = 
         raw_df = pd.concat([raw_df, stock_price_df], axis=0)
 
     raw_df.columns = raw_df.columns.str.upper() 
+
     if save_to_table:
         raw_df.to_csv(os.path.join(RAW_DATA_PATH, RAW_DATA_NAME), index=False)
         

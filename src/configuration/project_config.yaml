@@ -43,8 +43,9 @@ model_config:
   validation_metric: MAPE
   optimization_metric: MSE
   model_name: The_Predictor
-  target_name: CLOSE
-  predicted_name: FORECAST
+  target_col: CLOSE
+  predict_col: FORECAST
+  category_col: TICKER
   forecast_horizon: 7
   available_models:
     - XGB
