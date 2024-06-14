@@ -12,6 +12,7 @@ import yaml
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
     RAW_DATA_PATH = config['paths']['raw_data_path']
+    RAW_DATA_NAME = config['table_names']['raw_table_name']
     ticker_list = config['data_config']['tickers_list']
     PERIOD = config['data_config']['period']
     INTERVAL = config['data_config']['interval']
@@ -20,9 +21,6 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
     logging_config = yaml.safe_load(f.read())
     logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
-    logging.getLogger('yfinance').setLevel(logging.ERROR)
-    logging.getLogger('peewee').setLevel(logging.ERROR)
-    logging.getLogger('urllib3').setLevel(logging.ERROR)
 
 def fetch_current_stock_price(ticker: str) -> float:
     """
@@ -115,9 +113,8 @@ def make_dataset(ticker: str, period: str, interval: str, save_to_table: bool = 
 
     raw_df.columns = raw_df.columns.str.upper() 
     if save_to_table:
-        raw_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)
-
-    logger.debug(raw_df.tail())
+        raw_df.to_csv(os.path.join(RAW_DATA_PATH, RAW_DATA_NAME), index=False)
+        
     return raw_df
 
 
