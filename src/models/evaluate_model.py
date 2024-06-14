@@ -24,16 +24,16 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
     logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
     logging.getLogger('matplotlib').setLevel(logging.ERROR)
-    
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
     PROCESSED_DATA_PATH = config['paths']['processed_data_path']
     OUTPUT_DATA_PATH = config['paths']['output_data_path']
 
+
 def evaluate_and_store_performance(model_type, ticker_symbol, y_true, y_pred, latest_price_date, latest_run_date):
     """Evaluates model performance for a single ticker symbol on a single day and stores results."""
-    logger.debug(f"Actual value: {y_true}. Predicted Value: {y_pred}")
+    # logger.debug(f"Actual value: {y_true}. Predicted Value: {y_pred}")
 
     bias = ((y_pred - y_true) / (y_pred + y_true)).round(3)
     y_true = np.array([y_true])
@@ -69,8 +69,8 @@ def daily_model_evaluation(model_type=None, ticker_symbol=None):
     """Performs the models' performance daily evaluation"""
 
     # Loads the out of sample forecast table and the training dataset
-    current_train_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
-    historical_forecasts_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), parse_dates=["DATE","RUN_DATE"])
+    current_train_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_df.csv'), parse_dates=["DATE"])
+    historical_forecasts_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'forecast_output_df.csv'), parse_dates=["DATE","RUN_DATE"])
 
     TARGET_NAME = config["model_config"]["TARGET_NAME"]
     PREDICTED_NAME = config["model_config"]["PREDICTED_NAME"]

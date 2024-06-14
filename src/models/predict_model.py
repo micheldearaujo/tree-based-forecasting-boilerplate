@@ -33,16 +33,7 @@ def load_production_model_sklearn(model_type, ticker_symbol):
     """
     MODELS_PATH = config['paths']['models_path']
     model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.joblib"
-
     current_prod_model = joblib.load(model_file_path)
-
-    # if model_type == 'xgb':
-    #     current_prod_model = xgb.XGBRegressor()
-    #     current_prod_model._Booster = xgb.Booster()
-    #     current_prod_model._Booster.load_model(model_file_path)
-    # else:  
-    #     current_prod_model = joblib.load(model_file_path)
-
     return current_prod_model
 
 
@@ -239,7 +230,7 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
     OUTPUT_DATA_PATH = config['paths']['output_data_path']
 
     logger.debug("Loading the featurized dataset...")
-    stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
+    stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_df.csv'), parse_dates=["DATE"])
     
     final_predictions_df = pd.DataFrame()
 
@@ -282,7 +273,7 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
     if write_to_table:
         logger.info("Writing the predictions to database...")
 
-        file_path = f"{OUTPUT_DATA_PATH}/output_stock_prices.csv"
+        file_path = f"{OUTPUT_DATA_PATH}/forecast_output_df.csv"
         if os.path.isfile(file_path):
             final_predictions_df.to_csv(file_path, mode='a', header=False, index=False)
         else:
