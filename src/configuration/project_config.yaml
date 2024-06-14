@@ -42,6 +42,7 @@ features_list:
 model_config:
   validation_metric: MAPE
   optimization_metric: MSE
+  scoring_metric: neg_mean_absolute_error
   model_name: The_Predictor
   target_col: CLOSE
   predict_col: FORECAST
