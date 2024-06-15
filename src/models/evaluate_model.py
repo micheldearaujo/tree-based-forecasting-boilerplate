@@ -22,16 +22,30 @@ from src.utils import weekend_adj_forecast_horizon
 with open("src/configuration/logging_config.yaml", 'r') as f:  
     logging_config = yaml.safe_load(f.read())
     logging.config.dictConfig(logging_config)
-    logger = logging.getLogger(__name__)
     logging.getLogger('matplotlib').setLevel(logging.ERROR)
+    logger = logging.getLogger(__name__)
+
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
-    PROCESSED_DATA_PATH = config['paths']['processed_data_path']
-    OUTPUT_DATA_PATH = config['paths']['output_data_path']
+    model_config = config['model_config']
+    data_config = config['data_config']
+    PROCESSED_DATA_PATH = data_config['paths']['processed_data_path']
+    PROCESSED_DATA_NAME = data_config['table_names']['processed_table_name']
+    OUTPUT_DATA_PATH = data_config['paths']['output_data_path']
+    OUTPUT_DATA_NAME = data_config['table_names']['output_table_name']
+    DAILY_PERFORMANCE_DATA_NAME = data_config['table_names']['model_performance_table_name']
+    CROSS_VAL_DATA_NAME = data_config['table_names']['cross_validation_table_name']
+    MODELS_PATH = data_config['paths']['models_path']
+    TARGET_COL = model_config['target_col']
+    CATEGORY_COL = model_config['category_col']
+    PREDICTED_COL = model_config['predicted_col']
+    FORECAST_HORIZON = model_config['forecast_horizon']
+    features_list = config['features_list']
+    available_models = model_config['available_models']
 
 
-def evaluate_and_store_performance(model_type, ticker_symbol, y_true, y_pred, latest_price_date, latest_run_date):
+def evaluate_and_store_performance(model_type, ticker, y_true, y_pred, latest_price_date, latest_run_date):
     """Evaluates model performance for a single ticker symbol on a single day and stores results."""
     # logger.debug(f"Actual value: {y_true}. Predicted Value: {y_pred}")
 
@@ -47,34 +61,34 @@ def evaluate_and_store_performance(model_type, ticker_symbol, y_true, y_pred, la
         'EVAL_DATE': latest_price_date,
         'RUN_DATE': latest_run_date,
         'MODEL_NAME': model_type.upper(),
-        'TICKER': ticker_symbol,
+        CATEGORY_COL: ticker,
         'MAE': mae,
         'RMSE': rmse,
         'MAPE': mape,
         'BIAS': bias,
-        'FORECAST': y_pred[0],
+        TARGET_COL: y_pred[0],
         'ACTUAL': y_true[0]
     }
     
     results_df = pd.DataFrame([results])
     
-    file_path = f"{OUTPUT_DATA_PATH}/model_performance_daily.csv"
-    if os.path.isfile(file_path):
-        results_df.to_csv(file_path, mode='a', header=False, index=False)
-    else:
-        results_df.to_csv(file_path, index=False)
+    file_path = f"{OUTPUT_DATA_PATH}/{DAILY_PERFORMANCE_DATA_NAME}"
+    # if os.path.isfile(file_path):
+    #     results_df.to_csv(file_path, mode='a', header=False, index=False)
+    # else:
+    #     results_df.to_csv(file_path, index=False)
 
 
-def daily_model_evaluation(model_type=None, ticker_symbol=None):
+def daily_model_evaluation(model_type=None, ticker=None):
     """Performs the models' performance daily evaluation"""
 
     # Loads the out of sample forecast table and the training dataset
     current_train_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_df.csv'), parse_dates=["DATE"])
     historical_forecasts_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'forecast_output_df.csv'), parse_dates=["DATE","RUN_DATE"])
 
-    TARGET_NAME = config["model_config"]["TARGET_NAME"]
-    PREDICTED_NAME = config["model_config"]["PREDICTED_NAME"]
-    available_models = config['model_config']['available_models']
+    # TARGET_COL = config["model_config"]["TARGET_COL"]
+    # PREDICTED_COL = config["model_config"]["PREDICTED_COL"]
+    # available_models = config['model_config']['available_models']
 
     latest_price_date = current_train_df["DATE"].max().date()
     latest_run_date = historical_forecasts_df["RUN_DATE"].max().date()
@@ -82,40 +96,40 @@ def daily_model_evaluation(model_type=None, ticker_symbol=None):
     logger.debug(f"Latest availabe date: {latest_price_date}")
     logger.debug(f"Latest run date: {latest_run_date}")
 
-    # Check the ticker_symbol parameter
-    if ticker_symbol:
-        ticker_symbol = ticker_symbol.upper() + '.SA'
-        historical_forecasts_df = historical_forecasts_df[historical_forecasts_df["STOCK"] == ticker_symbol]
-        current_train_df = current_train_df[current_train_df["STOCK"] == ticker_symbol]
+    # Check the ticker parameter
+    if ticker:
+        ticker = ticker.upper() + '.SA'
+        historical_forecasts_df = historical_forecasts_df[historical_forecasts_df[CATEGORY_COL] == ticker]
+        current_train_df = current_train_df[current_train_df[CATEGORY_COL] == ticker]
     
     # Check the model_type parameter 
     if model_type is not None and model_type not in available_models:
         raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
     
     elif model_type:
-        available_models = [model_type.upper()]
+        available_models = [model_type]
 
-    for ticker_symbol in historical_forecasts_df["STOCK"].unique():
-        ticker_hist_forecast = historical_forecasts_df[historical_forecasts_df["STOCK"] == ticker_symbol]
-        ticker_train_df = current_train_df[current_train_df["STOCK"] == ticker_symbol]
+    for ticker in historical_forecasts_df[CATEGORY_COL].unique():
+        ticker_hist_forecast = historical_forecasts_df[historical_forecasts_df[CATEGORY_COL] == ticker]
+        ticker_train_df = current_train_df[current_train_df[CATEGORY_COL] == ticker]
 
         for model_type in available_models:
             model_type = model_type.upper()
 
-            latest_value = ticker_train_df[TARGET_NAME].values[-1]
+            latest_value = ticker_train_df[TARGET_COL].values[-1]
 
             try:
                 predicted_value = ticker_hist_forecast[
                     (ticker_hist_forecast["MODEL_TYPE"] == model_type) \
                     & (ticker_hist_forecast["RUN_DATE"] == pd.to_datetime(latest_run_date)) \
                     & (ticker_hist_forecast["DATE"] == pd.to_datetime(latest_price_date))
-                ][PREDICTED_NAME].values[0]
+                ][PREDICTED_COL].values[0]
 
             except:
                 logger.error(f"\nThe last forecasts where made at {latest_run_date}, A.K.A today. Comeback tomorrow in order to calculate today's performance.")
                 raise ValueError(f"\nThe last forecasts where made at {latest_run_date}, A.K.A today. Comeback tomorrow in order to calculate today's performance.")
 
-            evaluate_and_store_performance(model_type, ticker_symbol, latest_value, predicted_value, latest_price_date, latest_run_date)
+            evaluate_and_store_performance(model_type, ticker, latest_value, predicted_value, latest_price_date, latest_run_date)
 
 
 def update_test_values(X: pd.DataFrame, y: pd.Series, day: int) -> tuple[pd.DataFrame, pd.Series]:
@@ -172,7 +186,7 @@ def calculate_metrics(pred_df, actuals, predictions):
     return pred_df
 
 
-def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker_symbol: str, tune_params: bool = False) -> pd.DataFrame:
+def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker: str, tune_params: bool = False) -> pd.DataFrame:
     """
     Performs walk-forward validation for a given model type and ticker symbol.
 
@@ -184,14 +198,14 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         y (pd.Series): Target variable.
         forecast_horizon (int): The number of days to forecast ahead.
         model_type (Any): The type of model to use (e.g., 'xgb', 'rf', 'et').
-        ticker_symbol (str): The stock ticker symbol.
+        ticker (str): The stock ticker symbol.
         tune_params (bool, optional): Whether to perform hyperparameter tuning. Defaults to False.
 
     Returns:
         pd.DataFrame: A DataFrame containing:
             - DATE: The dates of the predictions.
             - ACTUAL: The actual target values.
-            - PREDICTED_NAME: The predicted values.
+            - PREDICTED_COL: The predicted values.
             - MODEL_TYPE: The type of model used.
             - CLASS: "Testing" (indicates the type of data).
             - Additional columns with performance metrics (MAE, RMSE, MAPE).
@@ -216,7 +230,7 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         X_train.drop(columns=["DATE"]),
         y_train,
         model_type,
-        ticker_symbol,
+        ticker,
         tune_params,
         save_model=False
     )
@@ -241,16 +255,16 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         final_y = final_y.reset_index(drop=True)
         X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
 
-    pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", PREDICTED_NAME])
+    pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", PREDICTED_COL])
     pred_df = calculate_metrics(pred_df, actuals, predictions)
     pred_df["MODEL_TYPE"] = str(type(best_model)).split('.')[-1][:-2]
     pred_df["CLASS"] = "Testing"
     
-    X_testing_df[PREDICTED_NAME] = predictions
+    X_testing_df[PREDICTED_COL] = predictions
     X_testing_df.reset_index(drop=True, inplace=True)
 
     # Plotting the Validation Results
-    # validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, ticker_symbol)
+    # validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, ticker)
 
     # Plotting the Learning Results
     #learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=True)
@@ -258,23 +272,23 @@ def walk_forward_validation(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     return pred_df, X_testing_df
 
 
-def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
+def model_crossval_pipeline(tune_params, model_type, ticker):
 
-    TARGET_NAME = config["model_config"]["TARGET_NAME"]
-    global PREDICTED_NAME
-    PREDICTED_NAME = config["model_config"]["PREDICTED_NAME"]
-    FORECAST_HORIZON = config['model_config']['forecast_horizon']
-    available_models = config['model_config']['available_models']
+    # TARGET_COL = config["model_config"]["TARGET_COL"]
+    # global PREDICTED_COL
+    # PREDICTED_COL = config["model_config"]["PREDICTED_COL"]
+    # FORECAST_HORIZON = config['model_config']['forecast_horizon']
+    # available_models = config['model_config']['available_models']
 
     validation_report_df = pd.DataFrame()
 
     logger.debug("Loading the featurized dataset..")
-    stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
+    feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
 
-    # Check the ticker_symbol parameter
-    if ticker_symbol:
-        ticker_symbol = ticker_symbol.upper() + '.SA'
-        stock_df_feat_all = stock_df_feat_all[stock_df_feat_all["STOCK"] == ticker_symbol]
+    # Check the ticker parameter
+    if ticker:
+        ticker = ticker.upper() + '.SA'
+        feature_df = feature_df[feature_df[CATEGORY_COL] == ticker]
         
     # Check the model_type parameter 
     if model_type is not None and model_type not in available_models:
@@ -283,27 +297,27 @@ def model_crossval_pipeline(tune_params, model_type, ticker_symbol):
     elif model_type:
         available_models = [model_type.upper()]
 
-    for ticker_symbol in stock_df_feat_all["STOCK"].unique():
-        stock_df_feat = stock_df_feat_all[stock_df_feat_all["STOCK"] == ticker_symbol].copy().drop("STOCK", axis=1)
+    for ticker in feature_df[CATEGORY_COL].unique():
+        filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy().drop(CATEGORY_COL, axis=1)
         
         for model_type in available_models:
-            logger.info(f"Performing model cross validation for ticker symbol [{ticker_symbol}] using model [{model_type}]...")
+            logger.info(f"Performing model cross validation for ticker symbol [{ticker}] using model [{model_type}]...")
  
             predictions_df, X_testing_df = walk_forward_validation(
-                X=stock_df_feat.drop(columns=[TARGET_NAME], axis=1),
-                y=stock_df_feat[TARGET_NAME],
+                X=filtered_feature_df.drop(columns=[TARGET_COL], axis=1),
+                y=filtered_feature_df[TARGET_COL],
                 forecast_horizon=FORECAST_HORIZON,
                 model_type=model_type,
-                ticker_symbol=ticker_symbol,
+                ticker=ticker,
                 tune_params=tune_params
             )
 
-            predictions_df["STOCK"] = ticker_symbol
+            predictions_df[CATEGORY_COL] = ticker
             predictions_df["TRAINING_DATE"] = dt.datetime.today().date()
             validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
     
     logger.info("Writing the testing results dataframe...")
-    validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_results_new.csv'), index=False)
+    validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, CROSS_VAL_DATA_NAME), index=False)
 
 
 if __name__ == "__main__":
@@ -313,11 +327,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "-mt", "--model_type",
         type=str,
-        choices=["xgb", "et"],
-        help="Model name use for inference (xgb, et) (optional, defaults to all)."
+        choices=["XGB", "ET"],
+        help="Model name use for inference (XGB, ET) (optional, defaults to all)."
     )
     parser.add_argument(
-        "-ts", "--ticker_symbol",
+        "-ts", "--ticker",
         type=str,
         help="""Ticker Symbol for inference. (optional, defaults to all).
         Example: bova11 -> BOVA11.SA | petr4 -> PETR4.SA"""
@@ -325,6 +339,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logger.info("Starting the Daily Model Evaluation pipeline...")
-    # daily_model_evaluation(args.model_type, args.ticker_symbol)
-    model_crossval_pipeline(False, args.model_type.upper(), args.ticker_symbol)
+    daily_model_evaluation(args.model_type, args.ticker)
+    # model_crossval_pipeline(False, args.model_type, args.ticker)
     logger.info("Daily Model Evaluation Pipeline completed successfully!")
