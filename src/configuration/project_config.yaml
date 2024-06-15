@@ -3,8 +3,7 @@
 data_config:
   period: 5y
   interval: 1d
-  ticker_symbol: BOVA11.SA
-  tickers_list: 
+  ticker_list: 
     - BOVA11.SA
     - BCFF11.SA
     - TAEE4.SA
@@ -13,6 +12,20 @@ data_config:
     - CSMG3.SA
     - PETR4.SA
     - BRSR6.SA
+
+  paths:
+    root_data_path: ./data
+    raw_data_path: data/raw
+    processed_data_path: data/processed
+    output_data_path: data/output
+    models_path: ./models
+
+  table_names:
+    raw_table_name: raw_df.csv
+    processed_table_name: processed_df.csv
+    output_table_name: forecast_output_df.csv
+    model_performance_table_name: model_performance_daily.csv
+    cross_validation_table_name: validation_results.csv
 
 features_list:
   - DAY_OF_MONTH
@@ -25,25 +38,15 @@ features_list:
   - CLOSE_LAG_2
   - CLOSE_MA_3
 
-paths:
-  root_data_path: ./data
-  raw_data_path: data/raw
-  processed_data_path: data/processed
-  output_data_path: data/output
-  models_path: ./models
-
-table_names:
-  raw_table_name: raw_df.csv
-  processed_table_name: processed_df.csv
-  output_table_name: output_df.csv
 
 model_config:
   validation_metric: MAPE
   optimization_metric: MSE
+  scoring_metric: neg_mean_absolute_error
   model_name: The_Predictor
-  test_size: 0.2
-  TARGET_NAME: CLOSE
-  PREDICTED_NAME: FORECAST
+  target_col: CLOSE
+  predicted_col: FORECAST
+  category_col: TICKER
   forecast_horizon: 7
   available_models:
     - XGB

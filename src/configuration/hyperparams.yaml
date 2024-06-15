@@ -1,6 +1,6 @@
 # src/configuration/hyperparams.yaml
 
-BASE_PARAMS:
+base_params:
   XGB: 
       learning_rate: 0.01
       max_depth: 11
@@ -17,7 +17,7 @@ BASE_PARAMS:
       n_estimators: 40
 
 
-PARAM_SPACES:
+param_spaces:
   XGB: 
       min_child_weight: [None, 1, 7]
       n_estimators: [None, 40, 300]
