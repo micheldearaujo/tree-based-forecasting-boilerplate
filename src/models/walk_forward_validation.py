@@ -273,7 +273,7 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
     return pred_df, X_testing_df
 
 
-def walk_forward_validation(tune_params, model_type, ticker, wfv_steps=52, wfv_size=FORECAST_HORIZON):
+def walk_forward_validation(tune_params, model_type, ticker, wfv_steps=0, wfv_size=FORECAST_HORIZON):
 
     # TARGET_COL = config["model_config"]["TARGET_COL"]
     # global PREDICTED_COL
@@ -331,7 +331,12 @@ def walk_forward_validation(tune_params, model_type, ticker, wfv_steps=52, wfv_s
 
     
     logger.info("Writing the testing results dataframe...")
-    validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'wfv_'+CROSS_VAL_DATA_NAME), index=False)
+    file_path = os.path.join(OUTPUT_DATA_PATH, 'wfv_'+CROSS_VAL_DATA_NAME)
+    if os.path.isfile(file_path):
+        validation_report_df.to_csv(file_path, mode='a', header=False, index=False)
+    else:
+        validation_report_df.to_csv(file_path, index=False)
+
 
 
 if __name__ == "__main__":
