@@ -144,7 +144,6 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
     
     for ticker_symbol in feature_df[CATEGORY_COL].unique():
         ticker_df_feat = feature_df[feature_df[CATEGORY_COL] == ticker_symbol].drop(CATEGORY_COL, axis=1).copy()
-        print(ticker_df_feat.head())
         X_train, y_train = split_feat_df_Xy(ticker_df_feat)
 
         for model_type in available_models:

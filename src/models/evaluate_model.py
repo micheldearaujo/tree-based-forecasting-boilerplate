@@ -73,10 +73,10 @@ def evaluate_and_store_performance(model_type, ticker, y_true, y_pred, latest_pr
     results_df = pd.DataFrame([results])
     
     file_path = f"{OUTPUT_DATA_PATH}/{DAILY_PERFORMANCE_DATA_NAME}"
-    # if os.path.isfile(file_path):
-    #     results_df.to_csv(file_path, mode='a', header=False, index=False)
-    # else:
-    #     results_df.to_csv(file_path, index=False)
+    if os.path.isfile(file_path):
+        results_df.to_csv(file_path, mode='a', header=False, index=False)
+    else:
+        results_df.to_csv(file_path, index=False)
 
 
 def daily_model_evaluation(model_type=None, ticker=None):
@@ -88,7 +88,7 @@ def daily_model_evaluation(model_type=None, ticker=None):
 
     # TARGET_COL = config["model_config"]["TARGET_COL"]
     # PREDICTED_COL = config["model_config"]["PREDICTED_COL"]
-    # available_models = config['model_config']['available_models']
+    available_models = model_config['available_models']
 
     latest_price_date = current_train_df["DATE"].max().date()
     latest_run_date = historical_forecasts_df["RUN_DATE"].max().date()
