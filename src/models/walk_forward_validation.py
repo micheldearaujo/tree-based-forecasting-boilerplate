@@ -48,7 +48,6 @@ with open("src/configuration/project_config.yaml", 'r') as f:
 
 def evaluate_and_store_performance(model_type, ticker, y_true, y_pred, latest_price_date, latest_run_date):
     """Evaluates model performance for a single ticker symbol on a single day and stores results."""
-    # logger.debug(f"Actual value: {y_true}. Predicted Value: {y_pred}")
 
     bias = ((y_pred - y_true) / (y_pred + y_true)).round(3)
     y_true = np.array([y_true])
@@ -86,10 +85,6 @@ def daily_model_evaluation(model_type=None, ticker=None):
     # Loads the out of sample forecast table and the training dataset
     current_train_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_df.csv'), parse_dates=["DATE"])
     historical_forecasts_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'forecast_output_df.csv'), parse_dates=["DATE","RUN_DATE"])
-
-    # TARGET_COL = config["model_config"]["TARGET_COL"]
-    # PREDICTED_COL = config["model_config"]["PREDICTED_COL"]
-    # available_models = config['model_config']['available_models']
 
     latest_price_date = current_train_df["DATE"].max().date()
     latest_run_date = historical_forecasts_df["RUN_DATE"].max().date()
@@ -171,7 +166,8 @@ def update_test_values(X: pd.DataFrame, y: pd.Series, day: int) -> tuple[pd.Data
     return X_test, y_test
 
 
-def calculate_metrics(pred_df, actuals, predictions):
+def calculate_metrics(pred_df: pd.DataFrame, actuals, predictions):
+    """Calculate evaluation metrics"""
     logger.debug("Calculating the evaluation metrics...")
     
     model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
@@ -238,6 +234,7 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
 
     for day in range(forecast_horizon, 0, -1):
         X_test, y_test = update_test_values(X, y, day)
+
         logger.debug(f"Testing Date: {X_test["DATE"].min().date()}")
 
         if len(predictions) != 0:
@@ -274,11 +271,11 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
 
 
 def walk_forward_validation(tune_params, model_type, ticker, wfv_steps=0, wfv_size=FORECAST_HORIZON):
+    """
+    Performs Walkf Forward Validation, i.e, training and testing the models
+    in multiple time-frames.
+    """
 
-    # TARGET_COL = config["model_config"]["TARGET_COL"]
-    # global PREDICTED_COL
-    # PREDICTED_COL = config["model_config"]["PREDICTED_COL"]
-    # FORECAST_HORIZON = config['model_config']['forecast_horizon']
     available_models = config['model_config']['available_models']
 
     validation_report_df = pd.DataFrame()
