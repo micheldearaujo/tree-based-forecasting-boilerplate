@@ -77,6 +77,17 @@ def create_date_features(df: pd.DataFrame, date_column: str = "DATE") -> pd.Data
     return df
 
 
+def dummy_date_columns(feature_df, dummy_columns):
+
+    for column in dummy_columns:
+        feature_df[column] = feature_df[column].astype('str')
+
+    feature_df_dummy = pd.get_dummies(feature_df, columns=dummy_columns, dtype='int')
+    feature_df_dummy
+
+    return feature_df_dummy
+
+
 def build_features(raw_df: pd.DataFrame, features_list: list, save: bool = True) -> pd.DataFrame:
     """
     Creates features for a machine learning dataset from raw data.
@@ -114,36 +125,3 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool = True)
     # feature_df =  dummy_date_columns(feature_df, dummy_columns)
 
     return feature_df
-
-
-def dummy_date_columns(feature_df, dummy_columns):
-
-    for column in dummy_columns:
-        feature_df[column] = feature_df[column].astype('str')
-
-    feature_df_dummy = pd.get_dummies(feature_df, columns=dummy_columns, dtype='int')
-    feature_df_dummy
-
-    return feature_df_dummy
-
-
-if __name__ == '__main__':
-
-    dummy_columns = ["DAY_OF_MONTH", "DAY_OF_WEEK", "WEEK_OF_MONTH", "MONTH", "QUARTER", "YEAR"]
-
-    logger.debug("Loading the raw dataset to featurize it...")
-    raw_df = pd.read_csv(os.path.join(RAW_DATA_PATH, RAW_DATA_NAME), parse_dates=["DATE"])
-
-    logger.info("Featurizing the dataset...")
-    features_list = config['features_list']
-    feature_df = build_features(raw_df, features_list)
-    
-    write_dataset_to_file(feature_df, PROCESSED_DATA_PATH, PROCESSED_DATA_NAME)
-
-    logger.debug("Features built successfully!")
-    logger.info(f"\n{feature_df.tail()}")
-    logger.debug(f"Dataset shape: {feature_df.shape}.")
-    logger.debug(f"Amount of ticker symbols: {feature_df[CATEGORY_COL].nunique()}.")
-    logger.info("Finished featurizing the dataset!")
-
-
