@@ -12,21 +12,26 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
-
-RAW_DATA_PATH = config['paths']['raw_data_path']
-PROCESSED_DATA_PATH = config['paths']['processed_data_path']
+    data_config = config['data_config']
+    model_config = config['model_config']
+    RAW_DATA_PATH = data_config['paths']['raw_data_path']
+    RAW_DATA_NAME = data_config['table_names']['raw_table_name']
+    PROCESSED_DATA_PATH = data_config['paths']['processed_data_path']
+    PROCESSED_DATA_NAME = data_config['table_names']['processed_table_name']
+    TARGET_COL = model_config['target_col']
+    CATEGORY_COL = model_config['category_col']
 
 logger.debug("Loading the raw dataset to featurize it...")
-raw_df = pd.read_csv(os.path.join(RAW_DATA_PATH, 'raw_df.csv'), parse_dates=["DATE"])
+raw_df = pd.read_csv(os.path.join(RAW_DATA_PATH, RAW_DATA_NAME), parse_dates=["DATE"])
 
 logger.info("Featurizing the dataset...")
 features_list = config['features_list']
-feat_df = build_features(raw_df, features_list)
+feature_df = build_features(raw_df, features_list)
 
-write_dataset_to_file(feat_df, PROCESSED_DATA_PATH, "processed_df")
+write_dataset_to_file(feature_df, PROCESSED_DATA_PATH, PROCESSED_DATA_NAME)
 
 logger.debug("Features built successfully!")
-logger.debug(f"\n{feat_df.tail()}")
-logger.debug(f"Dataset shape: {feat_df.shape}.")
-logger.debug(f"Amount of ticker symbols: {feat_df['STOCK'].nunique()}.")
+logger.info(f"\n{feature_df.tail()}")
+logger.debug(f"Dataset shape: {feature_df.shape}.")
+logger.debug(f"Amount of ticker symbols: {feature_df[CATEGORY_COL].nunique()}.")
 logger.info("Finished featurizing the dataset!")

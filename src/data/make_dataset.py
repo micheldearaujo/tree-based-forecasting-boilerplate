@@ -126,3 +126,4 @@ if __name__ == '__main__':
     logger.info("Downloading the raw dataset...")
     raw_df = make_dataset(ticker_list, PERIOD, INTERVAL)
     logger.info("Finished downloading the raw dataset!")
+    logger.info(raw_df.tail())
