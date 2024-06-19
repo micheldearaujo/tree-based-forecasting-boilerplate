@@ -119,11 +119,3 @@ def make_dataset(ticker: str, period: str, interval: str, save_to_table: bool = 
         raw_df.to_csv(os.path.join(RAW_DATA_PATH, RAW_DATA_NAME), index=False)
         
     return raw_df
-
-
-if __name__ == '__main__':
-
-    logger.info("Downloading the raw dataset...")
-    raw_df = make_dataset(ticker_list, PERIOD, INTERVAL)
-    logger.info("Finished downloading the raw dataset!")
-    logger.info(raw_df.tail())
