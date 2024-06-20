@@ -93,6 +93,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     
     best_params = grid_search.best_params_
     logger.warning(f"Best parameters found: {best_params}")
+    
     return best_params
 
 

@@ -43,11 +43,11 @@ with open("src/configuration/project_config.yaml", 'r') as f:
     FORECAST_HORIZON = model_config['forecast_horizon']
     features_list = config['features_list']
     available_models = model_config['available_models']
+    WFV_STEPS = model_config['wfv_steps']
 
 
 def evaluate_and_store_performance(model_type, ticker, y_true, y_pred, latest_price_date, latest_run_date):
     """Evaluates model performance for a single ticker symbol on a single day and stores results."""
-    # logger.debug(f"Actual value: {y_true}. Predicted Value: {y_pred}")
 
     bias = ((y_pred - y_true) / (y_pred + y_true)).round(3)
     y_true = np.array([y_true])
