@@ -123,18 +123,18 @@ The iterative forecasting workflow in the predict_model.py script is designed to
 To use this repository, clone it locally and install the required dependencies as listed in requirements.txt. You can run the scripts individually based on your stage in the project pipeline. For example:
 
 ### Installation
-`
+``
 python -m venv tree_forecasting
 
 source tree_forecasting/bin/activate
 
 pip install -r requirements.txt
-`
+``
 
 ### Running the complete (daily) pipeline
 Ensure you modify the project_config.yaml as per your project needs before running the scripts.
 
-`
+``
 python scripts/run_data_acquisition.py
 
 python scripts/run_feature_engineering.py
@@ -149,4 +149,4 @@ python scripts/run_inference.py
 
 `
 python scripts/run_wfv.py
-`
+``
