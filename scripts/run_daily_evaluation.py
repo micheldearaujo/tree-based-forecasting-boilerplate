@@ -6,14 +6,12 @@ sys.path.insert(0,'.')
 from src.models.evaluate_model import *
 
 
-def daily_model_evaluation(model_type=None, ticker=None):
+def daily_model_evaluation(models_list: list, ticker_list: list) -> None:
     """Performs the models' performance daily evaluation"""
 
     # Loads the out of sample forecast table and the training dataset
     current_train_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_df.csv'), parse_dates=["DATE"])
     historical_forecasts_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'forecast_output_df.csv'), parse_dates=["DATE","RUN_DATE"])
-
-    available_models = model_config['available_models']
 
     latest_price_date = current_train_df["DATE"].max().date()
     latest_run_date = historical_forecasts_df["RUN_DATE"].max().date()
@@ -21,25 +19,11 @@ def daily_model_evaluation(model_type=None, ticker=None):
     logger.debug(f"Latest availabe date: {latest_price_date}")
     logger.debug(f"Latest run date: {latest_run_date}")
 
-    # Check the ticker parameter
-    if ticker:
-        ticker = ticker.upper() + '.SA'
-        historical_forecasts_df = historical_forecasts_df[historical_forecasts_df[CATEGORY_COL] == ticker]
-        current_train_df = current_train_df[current_train_df[CATEGORY_COL] == ticker]
-    
-    # Check the model_type parameter 
-    if model_type is not None and model_type not in available_models:
-        raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
-    
-    elif model_type:
-        available_models = [model_type]
-
-    for ticker in historical_forecasts_df[CATEGORY_COL].unique():
+    for ticker in ticker_list:#historical_forecasts_df[CATEGORY_COL].unique():
         ticker_hist_forecast = historical_forecasts_df[historical_forecasts_df[CATEGORY_COL] == ticker]
         ticker_train_df = current_train_df[current_train_df[CATEGORY_COL] == ticker]
 
-        for model_type in available_models:
-            model_type = model_type.upper()
+        for model_type in models_list:
 
             latest_value = ticker_train_df[TARGET_COL].values[-1]
 
@@ -59,22 +43,9 @@ def daily_model_evaluation(model_type=None, ticker=None):
 
 if __name__ == "__main__":
     
-
-    parser = argparse.ArgumentParser(description="Perform Out-of-Sample Tree-based models Inference.")
-    parser.add_argument(
-        "-mt", "--model_type",
-        type=str,
-        choices=["xgb", "et"],
-        help="Model name use for inference (xgb, et) (optional, defaults to all)."
-    )
-    parser.add_argument(
-        "-ts", "--ticker_symbol",
-        type=str,
-        help="""Ticker Symbol for inference. (optional, defaults to all).
-        Example: bova11 -> BOVA11.SA | petr4 -> PETR4.SA"""
-    )
-    args = parser.parse_args()
-
     logger.info("Starting the Daily Model Evaluation pipeline...")
-    daily_model_evaluation(args.model_type, args.ticker_symbol)
+    daily_model_evaluation(
+        models_list = model_config["available_models"],
+        ticker_list = data_config["ticker_list"],
+    )
     logger.info("Daily Model Evaluation Pipeline completed successfully!")

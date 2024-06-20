@@ -1,4 +1,9 @@
 # Tree-based Forecasting Boilerplate
+[![Sklearn](https://img.shields.io/badge/scikit_learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://img.shields.io/badge/scikit_learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![YAML](https://img.shields.io/badge/yaml-%23ffffff.svg?style=for-the-badge&logo=yaml&logoColor=151515)
+[![Build Status](https://img.shields.io/badge/Pandas-2C2D72?style=for-the-badge&logo=pandas&logoColor=white)](link)
+
 ## Overview
 This repository serves as a comprehensive boilerplate for data science projects focusing on multi-step forecasting using tree-based models from the `scikit-learn` library. It includes utilities for feature engineering, data collection, model training, and making iterative predictions, facilitating a streamlined approach to predictive modeling.
 
@@ -24,8 +29,8 @@ The raw dataframe used in this example has the following structure:
 * <TARGET_COL>: The target variable for forecasting.
 
 This boilerplate example uses stock prices from the Brazilian Market, extracted using the Yahoo Finance API:
-- <CATEGORY_COL>: "TICKER"
-- <TARGET_COL>: "CLOSE"
+- <CATEGORY_COL> --> "TICKER"
+- <TARGET_COL> --> "CLOSE"
 
 ![Raw DataFrame used in this example](docs/raw_dataframe.png)
 
@@ -123,11 +128,14 @@ The iterative forecasting workflow in the predict_model.py script is designed to
 To use this repository, clone it locally and install the required dependencies as listed in requirements.txt. You can run the scripts individually based on your stage in the project pipeline. For example:
 
 ### Installation
+
 ``
 python -m venv tree_forecasting
-
+``
+``
 source tree_forecasting/bin/activate
-
+``
+``
 pip install -r requirements.txt
 ``
 
@@ -136,17 +144,22 @@ Ensure you modify the project_config.yaml as per your project needs before runni
 
 ``
 python scripts/run_data_acquisition.py
-
+``
+``
 python scripts/run_feature_engineering.py
-
+``
+``
 python scripts/run_daily_evaluation.py
-
+``
+``
 python scripts/run_model_training.py
-
+``
+``
 python scripts/run_inference.py
-`
+``
+
 ### Running Walk Forward Validation on past data
 
 `
 python scripts/run_wfv.py
-``
+`

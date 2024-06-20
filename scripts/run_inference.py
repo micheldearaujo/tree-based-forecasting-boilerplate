@@ -6,7 +6,7 @@ sys.path.insert(0,'.')
 from src.models.predict_model import *
 
 
-def inference_pipeline(model_type=None, ticker=None, write_to_table=True):
+def inference_pipeline(models_list: list, ticker_list: list, write_to_table=True):
     """
     Executes the model inference pipeline to generate stock price predictions.
 
@@ -34,26 +34,14 @@ def inference_pipeline(model_type=None, ticker=None, write_to_table=True):
         ValueError: If an invalid model type is provided.
     """
     logger.debug("Loading the featurized dataset...")
+
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
     final_predictions_df = pd.DataFrame()
-    available_models = model_config['available_models']
 
-    # Check the ticker parameter
-    if ticker:
-        ticker = ticker.upper() + '.SA'
-        feature_df = feature_df[feature_df[CATEGORY_COL] == ticker]
-
-    # Check the model_type parameter 
-    if model_type is not None and model_type not in available_models:
-        raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
-    
-    elif model_type:
-        available_models = [model_type]
-
-    for ticker in feature_df[CATEGORY_COL].unique():
+    for ticker in ticker_list:#feature_df[CATEGORY_COL].unique():
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy()
 
-        for model_type in available_models:
+        for model_type in models_list:
             logger.debug(f"Performing inferece for ticker [{ticker}] using model [{model_type}]...")
  
             current_prod_model = load_production_model_sklearn(model_type, ticker)
@@ -90,32 +78,9 @@ def inference_pipeline(model_type=None, ticker=None, write_to_table=True):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Perform Out-of-Sample Tree-based models Inference.")
-
-    parser.add_argument(
-        "-mt", "--model_type",
-        type=str,
-        choices=["xgb", "et"],
-        help="Model name use for inference (xgb, et) (optional, defaults to all)."
-    )
-    parser.add_argument(
-        "-ts", "--ticker_symbol",
-        type=str,
-        help="""Ticker Symbol for inference. (optional, defaults to all).
-        Example: bova11 -> BOVA11.SA | petr4 -> PETR4.SA"""
-    )
-    parser.add_argument(
-        "-w", "--write_to_table",
-        action="store_false",
-        help="Disable Writing the OFS forecasts to table. Defaults to True. Run '--write_to_table' to Disable."
-    )
-    args = parser.parse_args()
-
     logger.info("Starting the Inference pipeline...")
-
-    try:
-        model_type =args.model_type.upper()
-        inference_pipeline(model_type, args.ticker_symbol, args.write_to_table)
-    except:
-        inference_pipeline(args.model_type, args.ticker_symbol, args.write_to_table)
+    inference_pipeline(
+        models_list = model_config["available_models"],
+        ticker_list = data_config["ticker_list"],
+    )
     logger.info("Inference Pipeline completed successfully!")

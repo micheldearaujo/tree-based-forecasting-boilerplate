@@ -41,6 +41,7 @@ features_list:
 
 model_config:
   tune_params: False
+  save_model: True
   validation_metric: MAPE
   optimization_metric: MSE
   scoring_metric: neg_mean_absolute_error
