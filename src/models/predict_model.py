@@ -15,6 +15,11 @@ import xgboost as xgb
 import matplotlib.pyplot as plt
 import joblib
 
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': True,
+})
+
 from src.features.feat_eng import create_date_features
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  

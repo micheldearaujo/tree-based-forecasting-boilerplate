@@ -1,54 +1,58 @@
 # src/configuration/hyperparams.yaml
 
 base_params:
-  XGB: 
-      learning_rate: 0.01
-      max_depth: 11
-      n_estimators: 200
-      reg_lambda: 10
-      scale_pos_weight: 10
-      seed: 42
-      subsample: 1.0
-      colsample_bytree: 1.0
-      gamma: 0.01
+    XGB: 
+        learning_rate: 0.01
+        max_depth: 11
+        n_estimators: 200
+        reg_lambda: 10
+        scale_pos_weight: 10
+        seed: 42
+        subsample: 1.0
+        colsample_bytree: 1.0
+        gamma: 0.01
 
-  ET: 
-      max_depth: 11
-      n_estimators: 40
+    ET: 
+        max_depth: 11
+        n_estimators: 40
+
+    ADA:
+        max_depth: 5
+        n_estimators: 40
 
 
 param_spaces:
-  XGB: 
-      min_child_weight: [None, 1, 7]
-      n_estimators: [None, 40, 300]
-      max_depth: [None, 3, 9]
-      learning_rate: [None, 1.0, 0.1]
-      subsample: [None, 0.8, 1.0]
-      colsample_bytree: [None, 1.0]
-      gamma: [None, 0.1, 1.0]
-      reg_alpha: [None, 0.5, 1.0]
-      reg_lambda: [None, 0.5, 1.0]
-      seed: [42]
+    XGB: 
+        min_child_weight: [None, 1, 7]
+        n_estimators: [None, 40, 300]
+        max_depth: [None, 3, 9]
+        learning_rate: [None, 1.0, 0.1]
+        subsample: [None, 0.8, 1.0]
+        colsample_bytree: [None, 1.0]
+        gamma: [None, 0.1, 1.0]
+        reg_alpha: [None, 0.5, 1.0]
+        reg_lambda: [None, 0.5, 1.0]
+        seed: [42]
 
-  ET: 
-      n_estimators: [100, 200, 400]
-      max_features: [1.0, sqrt, log2]
-      max_depth: [None, 3, 5, 7, 9]
-      min_samples_split: [2, 5, 10]
-      min_samples_leaf: [1, 2, 4]
-      bootstrap: [True, False]
+    ET: 
+        n_estimators: [100, 200, 400]
+        max_features: [1.0, sqrt, log2]
+        max_depth: [None, 3, 5, 7, 9]
+        min_samples_split: [2, 5, 10]
+        min_samples_leaf: [1, 2, 4]
+        bootstrap: [True, False]
 
-  LGB: 
-      min_child_weight: [None, 1, 3, 5, 7]
-      n_estimators: [None, 40, 100, 300]
-      max_depth: [None, 3, 5, 7, 9]
-      learning_rate: [None, 0.2, 0.3, 0.1, 0.01]
-      subsample: [None, 0.8, 1.0]
-      colsample_bytree: [None, 1.0]
-      gamma: [None, 0.1, 0.25, 0.5, 1.0]
-      reg_alpha: [None, 0, 0.25, 0.5, 1.0]
-      reg_lambda: [None, 0, 0.25, 0.5, 1.0]
-      seed: [42]
+    LGB: 
+        min_child_weight: [None, 1, 3, 5, 7]
+        n_estimators: [None, 40, 100, 300]
+        max_depth: [None, 3, 5, 7, 9]
+        learning_rate: [None, 0.2, 0.3, 0.1, 0.01]
+        subsample: [None, 0.8, 1.0]
+        colsample_bytree: [None, 1.0]
+        gamma: [None, 0.1, 0.25, 0.5, 1.0]
+        reg_alpha: [None, 0, 0.25, 0.5, 1.0]
+        reg_lambda: [None, 0, 0.25, 0.5, 1.0]
+        seed: [42]
 
 # xgb_param_space_hpt: 
 #     max_depth: hp.choice(max_depth, [1, 2, 4, 9, 11, 30]),

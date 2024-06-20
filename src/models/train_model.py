@@ -12,19 +12,24 @@ import joblib
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
-from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.ensemble import ExtraTreesRegressor, AdaBoostRegressor
 
-with open("src/configuration/logging_config.yaml", 'r') as f:  
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': True,
+})
+
+with open("./src/configuration/logging_config.yaml", 'r') as f:  
     logging_config = yaml.safe_load(f.read())
     logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
 
-with open("src/configuration/hyperparams.yaml", 'r') as f:  
+with open("./src/configuration/hyperparams.yaml", 'r') as f:  
     hyperparams_config = yaml.safe_load(f.read())
     all_param_distributions = hyperparams_config['param_spaces']
     all_base_params = hyperparams_config['base_params']
 
-with open("src/configuration/project_config.yaml", 'r') as f:  
+with open("./src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
     model_config = config['model_config']
     data_config = config['data_config']
@@ -36,7 +41,30 @@ with open("src/configuration/project_config.yaml", 'r') as f:
 
 
 def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model):
-    """Trains a tree-based regression model."""
+    """Trains a tree-based regression model (XGBoost or ExtraTrees).
+
+    This function trains either an XGBoost or ExtraTreesRegressor model for a given ticker symbol.
+    It can optionally tune the model hyperparameters using grid search and save the trained model to disk.
+
+    Args:
+        X_train (pandas.DataFrame or numpy.ndarray): The training feature data.
+        y_train (pandas.Series or numpy.ndarray): The training target values.
+        model_type (str): The type of model to train. Choose from 'XGB' (XGBoost) or 'ET' (ExtraTrees).
+        ticker_symbol (str): The ticker symbol representing the time series being modeled.
+        tune_params (bool, optional): Whether to tune hyperparameters using grid search. Defaults to False.
+        save_model (bool, optional): Whether to save the trained model to disk. Defaults to True.
+
+    Returns:
+        The trained regression model object (xgb.XGBRegressor or ExtraTreesRegressor).
+
+    Raises:
+        ValueError: If an invalid `model_type` is provided.
+
+    Notes:
+        - If `tune_params` is True, a grid search will be performed using predefined hyperparameter grids to find the best set of parameters for the given model type.
+        - The trained model will be saved in the directory specified by `MODELS_PATH` (which should be defined elsewhere in your code)
+            using the format "{model_type}/{ticker_symbol}.joblib".
+    """
 
     
     os.makedirs(MODELS_PATH, exist_ok=True)
@@ -50,10 +78,15 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
         base_params.update(best_params)
 
     if model_type == 'XGB':
-        model = xgb.XGBRegressor(objective='reg:squarederror', **base_params).fit(X_train, y_train)
-
-    else:
+        model = xgb.XGBRegressor(objective='reg:squarederror', **base_params, eval_metric=["rmse", "logloss"]) \
+            .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=30)
+    elif model_type == 'ET':
         model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
+    elif model_type == 'ADA':
+        model = AdaBoostRegressor(**base_params).fit(X_train, y_train)
+    else:
+        raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
+        
 
     if save_model:
         joblib.dump(model, model_file_path)
@@ -78,7 +111,15 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
 
     logger.warning(f"Performing hyperparameter tuning for ticker [{ticker_symbol}] using {model_type}...")
 
-    model = xgb.XGBRegressor() if model_type == "XGB" else ExtraTreesRegressor()
+    if model_type == 'XGB':
+        model = xgb.XGBRegressor()
+    elif model_type == 'ET':
+        model = ExtraTreesRegressor()
+    elif model_type == 'ADA':
+        model = AdaBoostRegressor()
+    else:
+        raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
+
     tscv = TimeSeriesSplit(n_splits=n_splits)
     param_distributions = all_param_distributions[model_type]
 

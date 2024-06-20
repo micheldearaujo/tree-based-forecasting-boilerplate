@@ -17,7 +17,7 @@ import numpy as np
 from src.models.evaluate_model import *
 
 
-def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, wfv_size=FORECAST_HORIZON):
+def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, wfv_size=FORECAST_HORIZON, write_to_table=True) -> pd.DataFrame:
     """
     Performs Walkf Forward Validation, i.e, training and testing the models
     in multiple time-frames.
@@ -45,7 +45,7 @@ def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, 
                 logger.info(f"Iteration [{step}] training date: {step_df['DATE'].max()}")
 
                 predictions_df, X_testing_df = stepwise_prediction(
-                    X=step_df.drop(columns=[TARGET_COL], axis=1),
+                    X=step_df.drop(columns=[TARGET_COL]),
                     y=step_df[TARGET_COL],
                     forecast_horizon=FORECAST_HORIZON,
                     model_type=model_type,
@@ -61,18 +61,22 @@ def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, 
                 step_df = filtered_feature_df[filtered_feature_df["DATE"] <= (wfv_start_date + relativedelta(days=wfv_size * (step + 1)))].copy()
 
     
-    logger.info("Writing the testing results dataframe...")
-    file_path = os.path.join(OUTPUT_DATA_PATH, 'wfv_'+CROSS_VAL_DATA_NAME)
-    if os.path.isfile(file_path):
-        validation_report_df.to_csv(file_path, mode='a', header=False, index=False)
-    else:
-        validation_report_df.to_csv(file_path, index=False)
+    if write_to_table:
+        logger.info("Writing the testing results dataframe...")
+        file_path = os.path.join(OUTPUT_DATA_PATH, 'wfv_'+CROSS_VAL_DATA_NAME)
+
+        if os.path.isfile(file_path):
+            validation_report_df.to_csv(file_path, mode='a', header=False, index=False)
+        else:
+            validation_report_df.to_csv(file_path, index=False)
+
+    return validation_report_df
 
 
 
 if __name__ == "__main__":
 
-    walk_forward_validation(
+    validation_report_df = walk_forward_validation(
         tune_params = model_config["tune_params"],
         models_list = model_config["available_models"],
         ticker_list = data_config["ticker_list"],

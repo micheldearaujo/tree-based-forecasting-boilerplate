@@ -13,18 +13,16 @@ import logging
 import logging.config
 
 import pandas as pd
-import numpy as np
-import xgboost as xgb
 
-from src.config import *
-
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': True,
+})
 
 with open("src/configuration/hyperparams.yaml", 'r') as f:  
-
     hyperparams_config = yaml.safe_load(f.read())
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
-
     config = yaml.safe_load(f.read())
     logging.config.dictConfig(config)
     logger = logging.getLogger(__name__)
