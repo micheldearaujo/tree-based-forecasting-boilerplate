@@ -17,35 +17,22 @@ import numpy as np
 from src.models.evaluate_model import *
 
 
-def walk_forward_validation(tune_params, model_type, ticker, wfv_steps=0, wfv_size=FORECAST_HORIZON):
+def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, wfv_size=FORECAST_HORIZON):
     """
     Performs Walkf Forward Validation, i.e, training and testing the models
     in multiple time-frames.
     """
-
-    available_models = config['model_config']['available_models']
 
     validation_report_df = pd.DataFrame()
 
     logger.debug("Loading the featurized dataset..")
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
 
-    # Check the ticker parameter
-    if ticker:
-        ticker = ticker.upper() + '.SA'
-        feature_df = feature_df[feature_df[CATEGORY_COL] == ticker]
-        
-    # Check the model_type parameter 
-    if model_type is not None and model_type not in available_models:
-        raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
-    
-    elif model_type:
-        available_models = [model_type]
 
-    for ticker in feature_df[CATEGORY_COL].unique():
+    for ticker in ticker_list:#feature_df[CATEGORY_COL].unique():
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy().drop(CATEGORY_COL, axis=1)
         
-        for model_type in available_models:
+        for model_type in models_list:
             logger.info(f"Performing model cross validation for ticker symbol [{ticker}] using model [{model_type}]...")
 
             wfv_start_date = filtered_feature_df["DATE"].max() - relativedelta(days=wfv_size*wfv_steps)
@@ -85,22 +72,10 @@ def walk_forward_validation(tune_params, model_type, ticker, wfv_steps=0, wfv_si
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Perform Out-of-Sample Tree-based models Inference.")
-
-    parser.add_argument(
-        "-mt", "--model_type",
-        type=str,
-        choices=["XGB", "ET"],
-        help="Model name use for inference (XGB, ET) (optional, defaults to all)."
+    walk_forward_validation(
+        tune_params = model_config["tune_params"],
+        models_list = model_config["available_models"],
+        ticker_list = data_config["ticker_list"],
+        wfv_steps = WFV_STEPS,
+        wfv_size = FORECAST_HORIZON
     )
-    parser.add_argument(
-        "-ts", "--ticker",
-        type=str,
-        help="""Ticker Symbol for inference. (optional, defaults to all).
-        Example: BOVA -> BOVA11.SA | PETR4 -> PETR4.SA"""
-    )
-    args = parser.parse_args()
-
-    logger.info("Starting the Daily Model Evaluation pipeline...")
-    walk_forward_validation(False, args.model_type, args.ticker)
-    logger.info("Daily Model Evaluation Pipeline completed successfully!")
