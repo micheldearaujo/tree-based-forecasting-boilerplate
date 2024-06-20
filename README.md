@@ -24,10 +24,10 @@ The raw dataframe used in this example has the following structure:
 * <TARGET_COL>: The target variable for forecasting.
 
 This boilerplate example uses stock prices from the Brazilian Market, extracted using the Yahoo Finance API:
-CATEGORY_COL: TICKER
-TARGET_COL: CLOSE
+- <CATEGORY_COL>: "TICKER"
+- <TARGET_COL>: "CLOSE"
 
-![Raw DataFrame used in this example](raw_dataframe.png)
+![Raw DataFrame used in this example](docs/raw_dataframe.png)
 
 #### Processed Dataframe
 The processed dataframe includes:
@@ -45,29 +45,29 @@ The processed dataframe includes:
   -...
   - CLOSE_MA_<ANY_MA_NUMBER>
   -...
-* <CATEGORY_COL>: Any type of categorical feature that distinguishes different time series from each other.
-* <TARGET_COL>: The target variable for forecasting.
+* <CATEGORY_COL> ("TICKER") Any type of categorical feature that distinguishes different time series from each other.
+* <TARGET_COL> ("CLOSE") The target variable for forecasting.
 
-![Feature Engineered DataFrame, ready for Modeling.](processed_df.png)
+![Feature Engineered DataFrame, ready for Modeling.](docs/processed_df.png)
 
 ## Scripts Overview
 Here is a brief on what each script does:
 
-`run_data_acquisition.py`: Script to fetch or simulate data collection.
-`run_feature_engineering.py`: Applies transformations and feature engineering on collected data.
-`run_model_training.py`: Handles the training of the machine learning models.
-`run_daily_evaluation.py`: Handles the model backtesting over the last predicted date, as soon as ground truth data is available (in the processed_df).
-`run_inference.py`: Used for making predictions using the trained model.
-`run_wfv.py`: Script for "walk-forward validation", useful in time-series predictions to simulate real-world application.
+- `run_data_acquisition.py`: Script to fetch or simulate data collection.
+- `run_feature_engineering.py`: Applies transformations and feature engineering on collected data.
+- `run_model_training.py`: Handles the training of the machine learning models.
+- `run_daily_evaluation.py`: Handles the model backtesting over the last predicted date, as soon as ground truth data is available (in the processed_df).
+- `run_inference.py`: Used for making predictions using the trained model.
+- `run_wfv.py`: Script for "walk-forward validation", it is, time-series cross-validation technique used to assess the performance of predictive models. It is particularly useful for time-ordered data where temporal sequence matters, such as stock prices, weather data, or sales figures. WFV is designed to be more realistic in evaluating how well a model will generalize to future, unseen data.
 
 ### Configuration File
-The project uses a YAML configuration file (project_config.yaml) to manage settings and hyperparameters. Here’s what it typically contains:
+The project uses a YAML configuration files (project_config, logging_config and hyperparams.yaml) to manage settings and hyperparameters. Here’s what it typically contains:
 
 * Data Paths: Directories for input data, intermediate data, and outputs.
 * Model Parameters: Hyperparameters for the model training.
 * Feature List: Specific features to be included in the model.
 * Validation Settings: Configurations for how model validation should be performed.
-
+![alt text](docs/project_config.png)
 ## Deep Dive
 Performing multi-step ahead forecasting with tree-based models can be cumbersome, so let's deep dive into this project's workflow.
 
@@ -125,7 +125,9 @@ To use this repository, clone it locally and install the required dependencies a
 ### Installation
 `
 python -m venv tree_forecasting
+
 source tree_forecasting/bin/activate
+
 pip install -r requirements.txt
 `
 
@@ -134,9 +136,13 @@ Ensure you modify the project_config.yaml as per your project needs before runni
 
 `
 python scripts/run_data_acquisition.py
+
 python scripts/run_feature_engineering.py
+
 python scripts/run_daily_evaluation.py
+
 python scripts/run_model_training.py
+
 python scripts/run_inference.py
 `
 ### Running Walk Forward Validation on past data
