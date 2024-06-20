@@ -29,7 +29,7 @@ def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, 
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
 
 
-    for ticker in ticker_list:#feature_df[CATEGORY_COL].unique():
+    for ticker in ticker_list:
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy().drop(CATEGORY_COL, axis=1)
         
         for model_type in models_list:

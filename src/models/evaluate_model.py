@@ -196,7 +196,7 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
 
     # Plotting the Learning Results
     if model_type == "XGB":
-        learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=True)
+        learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=False)
 
     for day in range(forecast_horizon, 0, -1):
         X_test, y_test = update_test_values(X, y, day)
@@ -222,6 +222,8 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
     pred_df = calculate_metrics(pred_df, actuals, predictions)
     pred_df["MODEL_TYPE"] = str(type(best_model)).split('.')[-1][:-2]
     pred_df["CLASS"] = "Testing"
+    pred_df["TRAINING_MAPE"] = train_mape
+    pred_df["TRAINING_RMSE"] = train_rmse
     
     X_testing_df[PREDICTED_COL] = predictions
     X_testing_df.reset_index(drop=True, inplace=True)

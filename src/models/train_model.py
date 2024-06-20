@@ -79,11 +79,11 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
 
     if model_type == 'XGB':
         model = xgb.XGBRegressor(objective='reg:squarederror', **base_params, eval_metric=["rmse", "logloss"]) \
-            .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=30)
+            .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=10)
     elif model_type == 'ET':
-        model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
+        model = ExtraTreesRegressor(**base_params).fit(X_train, y_train, verbose=10)
     elif model_type == 'ADA':
-        model = AdaBoostRegressor(**base_params).fit(X_train, y_train)
+        model = AdaBoostRegressor(**base_params).fit(X_train, y_train, verbose=10)
     else:
         raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
         
