@@ -13,7 +13,6 @@ base_params:
         colsample_bytree: 1.0
         gamma: 0
 
-
     ET: 
         max_depth: 3
         n_estimators: 100
@@ -28,18 +27,17 @@ base_params:
         learning_rate: 1.0
         loss: 'linear'
         random_state: 42
-        estimator: DecisionTreeRegressor(max_depth=5)
-
+        estimator: DecisionTreeRegressor(max_depth=9)
 
 param_spaces:
     XGB: 
-        n_estimators: [35, 40, 50, 100]
+        n_estimators: [35, 40]
         max_depth: [3, 4, 5, 6]
         learning_rate: [0.3, 0.1, 0.01]
         subsample: [0.8, 1.0]
         colsample_bytree: [1.0]
         gamma: [0, 0.05, 0.1]
-        reg_alpha: [0,0.1, 0.5]
+        reg_alpha: [0, 0.1, 0.5]
         reg_lambda: [0.3, 0.5, 0.7]
         seed: [42]
 
@@ -53,12 +51,17 @@ param_spaces:
         random_state: [42]
 
     ADA: 
-        n_estimators: [50, 100, 200]  # Default: 50
+        n_estimators: [50, 80, 100, 150]  # Default: 50
         learning_rate: [1.0, 0.5, 0.1, 0.01]  # Default: 1.0
         loss: ['linear', 'square', 'exponential']  # Default: 'linear'
         random_state: [42]
-        estimator: [DecisionTreeRegressor(max_depth=1), DecisionTreeRegressor(max_depth=3), DecisionTreeRegressor(max_depth=5),
-            DecisionTreeRegressor(max_depth=9), RandomForestRegressor(n_estimators=10)]
+        estimator: [DecisionTreeRegressor(max_depth=1),
+            DecisionTreeRegressor(max_depth=3),
+            DecisionTreeRegressor(max_depth=5),
+            DecisionTreeRegressor(max_depth=9),
+            RandomForestRegressor(n_estimators=10),
+            RandomForestRegressor(n_estimators=40),
+            RandomForestRegressor(n_estimators=100)]
 
 # xgb_param_space_hpt: 
 #     max_depth: hp.choice(max_depth, [1, 2, 4, 9, 11, 30]),
