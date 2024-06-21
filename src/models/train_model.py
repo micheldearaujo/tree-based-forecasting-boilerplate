@@ -12,7 +12,12 @@ import joblib
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
-from sklearn.ensemble import ExtraTreesRegressor, AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import (
+    ExtraTreesRegressor,
+    AdaBoostRegressor,
+    RandomForestRegressor
+)
 
 logging.config.dictConfig({
     'version': 1,
@@ -38,7 +43,12 @@ with open("./src/configuration/project_config.yaml", 'r') as f:
     MODELS_PATH = data_config['paths']['models_path']
     TARGET_COL = model_config['target_col']
     CATEGORY_COL = model_config['category_col']
+    FORECAST_HORIZON = model_config['forecast_horizon']
 
+
+all_param_distributions['ADA']['estimator'] = [
+            eval(model_str) for model_str in all_param_distributions['ADA']['estimator']
+        ]
 
 def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model):
     """Trains a tree-based regression model (XGBoost or ExtraTrees).
@@ -55,7 +65,7 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
         save_model (bool, optional): Whether to save the trained model to disk. Defaults to True.
 
     Returns:
-        The trained regression model object (xgb.XGBRegressor or ExtraTreesRegressor).
+        The trained regression model object.
 
     Raises:
         ValueError: If an invalid `model_type` is provided.
@@ -79,22 +89,34 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
 
     if model_type == 'XGB':
         model = xgb.XGBRegressor(objective='reg:squarederror', **base_params, eval_metric=["rmse", "logloss"]) \
-            .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=10)
+            .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=20)
     elif model_type == 'ET':
-        model = ExtraTreesRegressor(**base_params).fit(X_train, y_train, verbose=10)
+        model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
     elif model_type == 'ADA':
-        model = AdaBoostRegressor(**base_params).fit(X_train, y_train, verbose=10)
+        model = AdaBoostRegressor(**base_params).fit(X_train, y_train)
     else:
         raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
         
-
     if save_model:
         joblib.dump(model, model_file_path)
 
     return model
 
 
-def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=3):
+class TimeSeriesSplitWithTestSize(TimeSeriesSplit):
+
+    def __init__(self, n_splits=5, test_size=None, gap=0):
+        super().__init__(n_splits=n_splits, gap=gap)
+        self.test_size = test_size
+
+    def split(self, X, y=None, groups=None):
+        for train_index, test_index in super().split(X, y, groups):
+            if self.test_size is not None:
+                test_index = test_index[-self.test_size:]
+            yield train_index, test_index
+
+
+def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=2):
     """
     Performs time series hyperparameter tuning on a model using grid search.
     
@@ -108,7 +130,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     Returns:
         best_params (dict): The best hyperparameters found by the grid search
     """
-
+    print("\n", "-"*80)
     logger.warning(f"Performing hyperparameter tuning for ticker [{ticker_symbol}] using {model_type}...")
 
     if model_type == 'XGB':
@@ -120,20 +142,28 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     else:
         raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    tscv = TimeSeriesSplit(n_splits=n_splits, test_size=FORECAST_HORIZON)
+
     param_distributions = all_param_distributions[model_type]
 
     grid_search = GridSearchCV(
         model,
         param_grid=param_distributions,
         cv=tscv,
-        n_jobs=-1,
+        n_jobs=6,
         scoring=model_config['scoring_metric'],
-        verbose=1
+        verbose=1,
+        return_train_score=True
     ).fit(X, y)
-    
+
+    pd.DataFrame(grid_search.cv_results_).to_csv(os.path.join(MODELS_PATH, model_type, f"grid_search_results_{model_type}_{ticker_symbol}.csv"), index=False)
+
+    print(grid_search.cv_results_.keys())
+
     best_params = grid_search.best_params_
+    print('\n',"-"*30)
     logger.warning(f"Best parameters found: {best_params}")
+    print("-"*30, '\n')
     
     return best_params
 
