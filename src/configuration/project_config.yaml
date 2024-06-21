@@ -40,7 +40,7 @@ features_list:
 
 
 model_config:
-  tune_params: False
+  tune_params: True
   save_model: True
   validation_metric: MAPE
   optimization_metric: MSE
@@ -50,7 +50,8 @@ model_config:
   predicted_col: FORECAST
   category_col: TICKER
   forecast_horizon: 7
-  wfv_steps: 0
+  wfv_steps: 54
   available_models:
     - XGB
     - ET
+    - ADA
