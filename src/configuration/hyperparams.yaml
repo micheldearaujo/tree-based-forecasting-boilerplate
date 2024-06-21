@@ -26,6 +26,9 @@ base_params:
     ADA:
         n_estimators: 50
         learning_rate: 1.0
+        loss: 'linear'
+        random_state: 42
+        estimator: DecisionTreeRegressor(max_depth=5)
 
 
 param_spaces:

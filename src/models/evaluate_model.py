@@ -191,12 +191,12 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
     train_preds = best_model.predict(X_train.drop(columns=["DATE"]))
     train_mape = round(mean_absolute_percentage_error(y_train, train_preds), 4)
     train_rmse = round(np.sqrt(mean_squared_error(y_train, train_preds)), 2)
-    logger.warning(f'Training MAPE: {train_mape}')
-    logger.warning(f'Training RMSE: {train_rmse}')
+    # logger.warning(f'Training MAPE: {train_mape}')
+    # logger.warning(f'Training RMSE: {train_rmse}')
 
     # Plotting the Learning Results
-    if model_type == "XGB":
-        learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=False)
+    # if model_type == "XGB":
+    #     learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=False)
 
     for day in range(forecast_horizon, 0, -1):
         X_test, y_test = update_test_values(X, y, day)

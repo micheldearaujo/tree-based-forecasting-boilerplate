@@ -18,6 +18,7 @@ from sklearn.ensemble import (
     AdaBoostRegressor,
     RandomForestRegressor
 )
+from sklearn.metrics import mean_squared_error
 
 logging.config.dictConfig({
     'version': 1,
@@ -47,8 +48,8 @@ with open("./src/configuration/project_config.yaml", 'r') as f:
 
 
 all_param_distributions['ADA']['estimator'] = [
-            eval(model_str) for model_str in all_param_distributions['ADA']['estimator']
-        ]
+    eval(model_str) for model_str in all_param_distributions['ADA']['estimator']
+]
 
 def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model):
     """Trains a tree-based regression model (XGBoost or ExtraTrees).
@@ -79,7 +80,8 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
     
     os.makedirs(MODELS_PATH, exist_ok=True)
     os.makedirs(MODELS_PATH+f'/{model_type}', exist_ok=True)
-    model_file_path = f"{MODELS_PATH}/{model_type}/{ticker_symbol}.joblib"
+    # model_file_path = f"{MODELS_PATH}/{model_type}/{ticker_symbol}.joblib"
+    model_file_path = os.path.join(MODELS_PATH, ticker_symbol, f"{model_type}.joblib")
 
     base_params = all_base_params[model_type]
 
@@ -103,19 +105,6 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
     return model
 
 
-class TimeSeriesSplitWithTestSize(TimeSeriesSplit):
-
-    def __init__(self, n_splits=5, test_size=None, gap=0):
-        super().__init__(n_splits=n_splits, gap=gap)
-        self.test_size = test_size
-
-    def split(self, X, y=None, groups=None):
-        for train_index, test_index in super().split(X, y, groups):
-            if self.test_size is not None:
-                test_index = test_index[-self.test_size:]
-            yield train_index, test_index
-
-
 def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=2):
     """
     Performs time series hyperparameter tuning on a model using grid search.
@@ -123,7 +112,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     Args:
         X (pd.DataFrame): The input feature data
         y (pd.Series): The target values
-        model_type (str): The model to tune. Options: ['XGB', 'ET']
+        model_type (str): The model to tune. Options: ['XGB', 'ET', 'ADA']
         ticker_symbol (str): Ticker Symbol to perform Tuning on.
         n_splits (int): Number of folds for cross-validation (default: 3)
     
@@ -143,9 +132,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
         raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
 
     tscv = TimeSeriesSplit(n_splits=n_splits, test_size=FORECAST_HORIZON)
-
     param_distributions = all_param_distributions[model_type]
-
     grid_search = GridSearchCV(
         model,
         param_grid=param_distributions,
@@ -156,14 +143,13 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
         return_train_score=True
     ).fit(X, y)
 
-    pd.DataFrame(grid_search.cv_results_).to_csv(os.path.join(MODELS_PATH, model_type, f"grid_search_results_{model_type}_{ticker_symbol}.csv"), index=False)
-
-    print(grid_search.cv_results_.keys())
-
     best_params = grid_search.best_params_
     print('\n',"-"*30)
     logger.warning(f"Best parameters found: {best_params}")
     print("-"*30, '\n')
+
+    # Save the best parameters
+    # with open(os.path.join(MODELS_PATH, ))
     
     return best_params
 
@@ -176,3 +162,49 @@ def split_feat_df_Xy(df):
     return X_train, y_train
 
    
+def select_and_stage_best_model(models, X_test, y_test, metric='rmse', prod_model_path='prod_model.joblib'):
+    """
+    Evaluates multiple models, selects the best based on a given metric, and stages it to "prod".
+
+    Args:
+        models (dict): A dictionary of models with their names as keys (e.g., {'XGB': xgb_model, 'ET': et_model, ...}).
+        X_test (pd.DataFrame): Test feature matrix.
+        y_test (pd.Series): Test target values.
+        metric (str, optional): Evaluation metric ('rmse' or 'mae'). Defaults to 'rmse'.
+        prod_model_path (str, optional): Path to save the production model. Defaults to 'prod_model.joblib'.
+    """
+    results = {}
+
+    # Evaluate each model
+    for model_name, model in models.items():
+        y_pred = model.predict(X_test)
+
+        if metric == 'rmse':
+            score = mean_squared_error(y_test, y_pred, squared=False)
+        else:
+            raise ValueError(f"Invalid metric: {metric}. Choose 'rmse' or 'mae'.")
+
+        results[model_name] = score
+
+    # Select the best model
+    best_model_name = min(results, key=results.get)  # Get model with lowest error
+    best_model = models[best_model_name]
+
+    print(f"\nBest Model: {best_model_name} with {metric.upper()}: {results[best_model_name]:.4f}")
+
+    # Stage to "prod" (simulate by saving the model)
+    with open(prod_model_path, 'wb') as f:
+        joblib.dump(best_model, f)  # Serialize the model
+
+    print(f"\nStaged model '{best_model_name}' to production at: {prod_model_path}")
+    return best_model_name
+
+# Example usage (assuming your models are already trained)
+# models = {'XGB': xgb_model, 'AdaBoost': ada_model, 'ExtraTrees': et_model}  
+
+# Perform model selection and staging
+# best_model = select_and_stage_best_model(models, X_test, y_test, metric='rmse')
+
+# Optionally, load the production model later:
+# with open('prod_model.pkl', 'rb') as f:
+#     loaded_model = joblib.load(f)
