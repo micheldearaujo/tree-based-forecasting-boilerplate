@@ -7,7 +7,7 @@ sys.path.insert(0,'.')
 from src.models.train_model import *
 
 
-def training_pipeline(models_list: list, ticker_list: list, load_best_params=False):
+def training_pipeline(models_list: list[str], ticker_list: list[str], load_best_params=True):
     """
     Executes the complete model training pipeline for one or multiple ticker symbols and model types.
 
@@ -16,14 +16,11 @@ def training_pipeline(models_list: list, ticker_list: list, load_best_params=Fal
     1. Loads the featurized dataset.
     2. Filters the dataset based on the specified ticker symbol (if provided).
     3. Trains the specified models (or all available models if none specified).
-    4. Optionally performs hyperparameter tuning using RandomizedSearchCV.
-    5. Optionally saves the trained models to files.
 
     Args:
         model_type (list): The list of models type to train.
         ticker_symbol (list): The ticker symbol to train on.
-        tune_params (bool, optional): If True, perform hyperparameter tuning. Defaults to False.
-        save_model (bool, optional): If True, save the trained models to files. Defaults to True.
+        load_best_params (bool, optional): If True, Loads the best parameters saved in joblib file inside models/. Defaults to True.
 
     Raises:
         ValueError: If an invalid model type is provided.
@@ -44,18 +41,16 @@ def training_pipeline(models_list: list, ticker_list: list, load_best_params=Fal
         X_val, y_val = split_feat_df_Xy(val_df)
 
         models = {}
-
-        # TODO: Continuar daqui. Ta faltando treinar o modelo no dataset completo e salvar.
         for model_type in models_list:
             logger.debug(f"Training model [{model_type}] for ticker [{ticker_symbol}]...")
-            model = train_model(X_train, y_train, model_type, ticker_symbol, load_best_params=True)
+            model = train_model(X_train, y_train, model_type, ticker_symbol, load_best_params=load_best_params)
             models[model_type] = model
 
         best_model_name = select_and_stage_best_model(models, X_val, y_val)
         
         # Retrain best model
         X_train, y_train = split_feat_df_Xy(ticker_df_feat)
-        best_model = train_model(X_train, y_train, best_model_name, ticker_symbol, load_best_params=True)
+        best_model = train_model(X_train, y_train, best_model_name, ticker_symbol, load_best_params=load_best_params)
 
         # Stage to "prod" (simulate by saving the model)
         prod_model_path = os.path.join(MODELS_PATH, ticker_symbol, 'prod_model.joblib')
@@ -69,7 +64,7 @@ if __name__ == "__main__":
     logger.info("Starting the training pipeline...")
     training_pipeline(
         models_list = model_config["available_models"],
-        ticker_list = [data_config["ticker_list"][0]],
+        ticker_list = data_config["ticker_list"],
         load_best_params = True,
     )
     logger.info("Training Pipeline completed successfully!")
