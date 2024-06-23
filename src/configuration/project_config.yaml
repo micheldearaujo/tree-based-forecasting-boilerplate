@@ -40,7 +40,7 @@ features_list:
 
 
 model_config:
-  tune_params: False
+  tune_params: True
   save_model: True
   validation_metric: MAPE
   optimization_metric: MSE
@@ -54,3 +54,4 @@ model_config:
   available_models:
     - XGB
     - ET
+    - ADA

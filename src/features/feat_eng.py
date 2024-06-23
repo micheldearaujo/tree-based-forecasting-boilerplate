@@ -8,8 +8,12 @@ import yaml
 
 import pandas as pd
 
-from src.utils import write_dataset_to_file
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': True,
+})
 
+from src.utils import write_dataset_to_file
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())

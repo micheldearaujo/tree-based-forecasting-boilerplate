@@ -16,8 +16,13 @@ from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, 
 
 from src.models.train_model import train_model
 from src.models.predict_model import update_lag_features, update_ma_features
-from src.visualization.data_viz import visualize_validation_results
+from src.visualization.data_viz import visualize_validation_results, extract_learning_curves
 from src.utils import weekend_adj_forecast_horizon
+
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': True,
+})
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
     logging_config = yaml.safe_load(f.read())
@@ -133,7 +138,7 @@ def calculate_metrics(pred_df, actuals, predictions):
     return pred_df
 
 
-def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker: str, tune_params: bool = False) -> pd.DataFrame:
+def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker: str, load_best_params: bool = False) -> pd.DataFrame:
     """
     Performs iterativly 1 step ahead forecast validation for a given model type and ticker symbol.
 
@@ -171,16 +176,26 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
     y_train = y.iloc[:-forecast_horizon]
     final_y = y_train.copy()
 
-    logger.debug(f"Last training date: {X_train["DATE"].max().date()}")
+    logger.debug(f"Training model until (including): {X_train["DATE"].max().date()}")
 
     best_model = train_model(
         X_train.drop(columns=["DATE"]),
         y_train,
         model_type,
         ticker,
-        tune_params,
-        save_model=False
+        load_best_params,
     )
+
+    # Predict on training to evaluate overfitting
+    train_preds = best_model.predict(X_train.drop(columns=["DATE"]))
+    train_mape = round(mean_absolute_percentage_error(y_train, train_preds), 4)
+    train_rmse = round(np.sqrt(mean_squared_error(y_train, train_preds)), 2)
+    # logger.warning(f'Training MAPE: {train_mape}')
+    # logger.warning(f'Training RMSE: {train_rmse}')
+
+    # Plotting the Learning Results
+    # if model_type == "XGB":
+    #     learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=False)
 
     for day in range(forecast_horizon, 0, -1):
         X_test, y_test = update_test_values(X, y, day)
@@ -206,14 +221,10 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
     pred_df = calculate_metrics(pred_df, actuals, predictions)
     pred_df["MODEL_TYPE"] = str(type(best_model)).split('.')[-1][:-2]
     pred_df["CLASS"] = "Testing"
+    pred_df["TRAINING_MAPE"] = train_mape
+    pred_df["TRAINING_RMSE"] = train_rmse
     
     X_testing_df[PREDICTED_COL] = predictions
     X_testing_df.reset_index(drop=True, inplace=True)
-
-    # Plotting the Validation Results
-    # validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, ticker)
-
-    # Plotting the Learning Results
-    #learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=True)
     
     return pred_df, X_testing_df

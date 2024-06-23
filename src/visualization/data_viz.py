@@ -2,9 +2,7 @@
 import sys
 import os
 sys.path.insert(0,'.')
-from xgboost import plot_importance
 
-from src.utils import *
 import logging
 import yaml
 import datetime as dt
@@ -12,15 +10,26 @@ import datetime as dt
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+from xgboost import plot_importance
+import xgboost as xgb
+
+from src.utils import *
 
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
-
     logging_config = yaml.safe_load(f.read())
     logging.config.dictConfig(logging_config)
     logger = logging.getLogger(__name__)
     logging.getLogger('matplotlib').setLevel(logging.ERROR)
 
+with open("src/configuration/project_config.yaml", 'r') as f:  
+    config = yaml.safe_load(f.read())
+    model_config = config['model_config']
+    data_config = config['data_config']
+    TARGET_COL = model_config['target_col']
+    CATEGORY_COL = model_config['category_col']
+    PREDICTED_COL = model_config['predicted_col']
+    FORECAST_HORIZON = model_config['forecast_horizon']
 
 def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False) -> matplotlib.figure.Figure:
     """
@@ -40,32 +49,32 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     # extract the learning curves
     learning_results = model.evals_result()
 
-    fig, axs = plt.subplots(1, 2, figsize=(6, 3))
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3))
     plt.suptitle("XGBoost Learning Curves")
     axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
     axs[0].set_title("RMSE Metric")
     axs[0].set_ylabel("RMSE")
     axs[0].set_xlabel("Iterations")
     axs[0].legend()
+    axs[0].grid()
 
     axs[1].plot(learning_results['validation_0']['logloss'], label='Training')
     axs[1].set_title("Logloss Metric")
     axs[1].set_ylabel("Logloss")
     axs[1].set_xlabel("Iterations")
     axs[1].legend()
+    axs[1].grid()
+    plt.tight_layout()
 
     fig2, axs2 = plt.subplots(figsize=(6, 3))
-    plot_importance(model, ax=axs2, importance_type='gain')
-    plt.close()
+    plot_importance(model, ax=axs2, importance_type='weight')
     
-
     if display:
         plt.show()
-        
     
     return fig, fig2
 
-def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_mae: float, model_wape: float, stock_name: str):
+def visualize_validation_results(pred_df: pd.DataFrame, ticker: str):
     """
     Creates visualizations of the model validation
 
@@ -80,6 +89,8 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     """
 
     logger.debug("Vizualizing the results...")
+    model_mape = pred_df['MAPE'].values[0]
+    model_rmse = pred_df['RMSE'].values[0]
 
     fig, axs = plt.subplots(figsize=(6, 3))
 
@@ -88,7 +99,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
         data=pred_df,
         x="DATE",
         y="ACTUAL",
-        label="Testing values",
+        label="Actuals",
         ax=axs
     )
     sns.scatterplot(
@@ -104,28 +115,29 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     sns.lineplot(
         data=pred_df,
         x="DATE",
-        y="FORECAST",
-        label="FORECAST values",
+        y=PREDICTED_COL,
+        label="Forecasted",
         ax=axs
     )
     sns.scatterplot(
         data=pred_df,
         x="DATE",
-        y="FORECAST",
+        y=PREDICTED_COL,
         ax=axs,
-        size="FORECAST",
+        size=PREDICTED_COL,
         sizes=(80, 80), legend=False
     )
 
-    axs.set_title(f"Model FORECAST for {stock_name}\nMAPE: {round(model_mape*100, 2)}% | MAE: R${model_mae} | WAPE: {model_wape}")
+    axs.set_title(f"Valdation results for {CATEGORY_COL} - {ticker}\nMAPE: {round(model_mape*100, 2)}% | RMSE: {model_rmse}")
     axs.set_xlabel("DATE")
     axs.set_ylabel("R$")
+    axs.tick_params(axis='x', rotation=20)
+    plt.grid()
+    # try:
+    #     plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
 
-    try:
-        plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
-
-    except FileNotFoundError:
-        logger.warning("FORECAST Figure not Saved!")
+    # except FileNotFoundError:
+    #     logger.warning("FORECAST Figure not Saved!")
 
     #plt.show()
     return fig
