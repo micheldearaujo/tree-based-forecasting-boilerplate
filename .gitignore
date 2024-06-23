@@ -80,7 +80,7 @@ target/
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
 # notebooks too
-notebooks/
+# notebooks/
 
 # exclude data from source control by default
 #/data/
