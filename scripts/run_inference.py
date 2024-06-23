@@ -38,25 +38,26 @@ def inference_pipeline(models_list: list, ticker_list: list, write_to_table=True
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
     final_predictions_df = pd.DataFrame()
 
-    for ticker in ticker_list:#feature_df[CATEGORY_COL].unique():
+    for ticker in ticker_list:
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy()
 
-        for model_type in models_list:
-            logger.debug(f"Performing inferece for ticker [{ticker}] using model [{model_type}]...")
- 
-            current_prod_model = load_production_model_sklearn(model_type, ticker)
+        # for model_type in models_list:
+        logger.debug(f"Performing inferece for ticker [{ticker}]...")# using model [{model_type}]...")
 
-            logger.debug("Creating the future dataframe...")
-            future_df = make_future_df(FORECAST_HORIZON, filtered_feature_df, features_list)
+        current_prod_model = load_production_model_sklearn(ticker)
+        model_name = type(current_prod_model).__name__
 
-            logger.debug("Predicting...")
-            predictions_df = make_iterative_predictions(
-                model=current_prod_model,
-                future_df=future_df,
-                past_target_values=list(filtered_feature_df[TARGET_COL].values)
-            )
-            predictions_df['MODEL_TYPE'] = model_type
-            final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
+        logger.debug("Creating the future dataframe...")
+        future_df = make_future_df(FORECAST_HORIZON, filtered_feature_df, features_list)
+
+        logger.debug("Predicting...")
+        predictions_df = make_iterative_predictions(
+            model=current_prod_model,
+            future_df=future_df,
+            past_target_values=list(filtered_feature_df[TARGET_COL].values)
+        )
+        predictions_df['MODEL_TYPE'] = model_name
+        final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
 
     # Add the run date
     RUN_DATE = dt.datetime.today().date()

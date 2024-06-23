@@ -63,7 +63,7 @@ def walk_forward_validation(load_best_params, models_list, ticker_list, wfv_step
     
     if write_to_table:
         logger.info("Writing the testing results dataframe...")
-        file_path = os.path.join(OUTPUT_DATA_PATH, 'tuned_wfv_'+CROSS_VAL_DATA_NAME)
+        file_path = os.path.join(OUTPUT_DATA_PATH, 'default_wfv_'+CROSS_VAL_DATA_NAME)
 
         if os.path.isfile(file_path):
             validation_report_df.to_csv(file_path, mode='a', header=False, index=False)
