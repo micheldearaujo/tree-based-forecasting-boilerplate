@@ -8,7 +8,13 @@ import logging.config
 import yaml
 
 import pandas as pd
+import yfinance
 import yfinance as yfin
+
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': True,
+})
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
     config = yaml.safe_load(f.read())
