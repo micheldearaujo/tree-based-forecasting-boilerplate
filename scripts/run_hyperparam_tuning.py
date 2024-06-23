@@ -8,7 +8,7 @@ from src.models.train_model import *
 from src.utils import weekend_adj_forecast_horizon
 
 
-def hyperparam_tuning_pipeline(models_list: list, ticker_list: list, forecast_horizon: int, save_params=True):
+def hyperparam_tuning_pipeline(models_list: list[str], ticker_list: list[str], forecast_horizon: int, save_params: bool=True):
 
     logger.debug("Loading the featurized dataset..")
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
@@ -29,7 +29,7 @@ def hyperparam_tuning_pipeline(models_list: list, ticker_list: list, forecast_ho
         for model_type in models_list:
             logger.debug(f"Performing hyperparameter tuning for ticker [{ticker_symbol}] using {model_type}...")
 
-            grid_search = tune_params_gridsearch(X_train, y_train, model_type, n_splits=2)
+            grid_search = tune_params_gridsearch(X_train, y_train, model_type, n_splits=3)
             best_params = grid_search.best_params_
 
             logger.info(f"Best parameters found: {best_params}")
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     logger.info("Starting the Hyperparameter Tuning pipeline...")
     hyperparam_tuning_pipeline(
         models_list = model_config["available_models"],
-        ticker_list = [data_config["ticker_list"][0]],
+        ticker_list = data_config["ticker_list"],
         forecast_horizon = FORECAST_HORIZON,
         save_params = True
     )

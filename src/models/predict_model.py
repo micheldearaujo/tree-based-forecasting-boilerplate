@@ -48,7 +48,7 @@ def load_production_model_sklearn(model_type, ticker):
     """
     Loading the Sklearn models saved using the traditional Joblib format.
     """
-    model_file_path = f"{MODELS_PATH}/{model_type}/{ticker}.joblib"
+    model_file_path = os.path.join(MODELS_PATH, ticker, "prod_model.joblib")
     current_prod_model = joblib.load(model_file_path)
 
     return current_prod_model

@@ -138,7 +138,7 @@ def calculate_metrics(pred_df, actuals, predictions):
     return pred_df
 
 
-def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker: str, tune_params: bool = False) -> pd.DataFrame:
+def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, model_type: Any, ticker: str, load_best_params: bool = False) -> pd.DataFrame:
     """
     Performs iterativly 1 step ahead forecast validation for a given model type and ticker symbol.
 
@@ -183,8 +183,7 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
         y_train,
         model_type,
         ticker,
-        tune_params,
-        save_model=False
+        load_best_params,
     )
 
     # Predict on training to evaluate overfitting

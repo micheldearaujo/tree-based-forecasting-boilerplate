@@ -17,7 +17,7 @@ import numpy as np
 from src.models.evaluate_model import *
 
 
-def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, wfv_size=FORECAST_HORIZON, write_to_table=True) -> pd.DataFrame:
+def walk_forward_validation(load_best_params, models_list, ticker_list, wfv_steps=0, wfv_size=FORECAST_HORIZON, write_to_table=True) -> pd.DataFrame:
     """
     Performs Walkf Forward Validation, i.e, training and testing the models
     in multiple time-frames.
@@ -50,7 +50,7 @@ def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, 
                     forecast_horizon=FORECAST_HORIZON,
                     model_type=model_type,
                     ticker=ticker,
-                    tune_params=tune_params
+                    load_best_params=load_best_params
                 )
 
                 predictions_df[CATEGORY_COL] = ticker
@@ -77,7 +77,7 @@ def walk_forward_validation(tune_params, models_list, ticker_list, wfv_steps=0, 
 if __name__ == "__main__":
 
     validation_report_df = walk_forward_validation(
-        tune_params = model_config["tune_params"],
+        load_best_params = True,
         models_list = model_config["available_models"],
         ticker_list = data_config["ticker_list"],
         wfv_steps = WFV_STEPS,
