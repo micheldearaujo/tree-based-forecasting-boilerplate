@@ -94,15 +94,26 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series, model_type: str, tick
         best_params = joblib.load(best_params_path)
         base_params.update(best_params)
 
-    if model_type == 'XGB':
-        model = xgb.XGBRegressor(objective='reg:squarederror', **base_params, eval_metric=["rmse", "logloss"]) \
-            .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=20)
-    elif model_type == 'ET':
-        model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
-    elif model_type == 'ADA':
-        model = AdaBoostRegressor(**base_params).fit(X_train, y_train)
+        if model_type == 'XGB':
+            model = xgb.XGBRegressor(objective='reg:squarederror', **base_params, eval_metric=["rmse", "logloss"]) \
+                .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=20)
+        elif model_type == 'ET':
+            model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
+        elif model_type == 'ADA':
+            model = AdaBoostRegressor(**base_params).fit(X_train, y_train)
+        else:
+            raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
+        
     else:
-        raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
+        if model_type == 'XGB':
+            model = xgb.XGBRegressor(objective='reg:squarederror', eval_metric=["rmse", "logloss"]) \
+                .fit(X_train, y_train, eval_set=[(X_train, y_train)], verbose=20)
+        elif model_type == 'ET':
+            model = ExtraTreesRegressor().fit(X_train, y_train)
+        elif model_type == 'ADA':
+            model = AdaBoostRegressor().fit(X_train, y_train)
+        else:
+            raise ValueError("Model type not recognized! Check 'models_list' parameter in project_config.yaml.")
 
     return model
 

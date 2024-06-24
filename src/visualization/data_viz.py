@@ -9,6 +9,7 @@ import datetime as dt
 
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import seaborn as sns
 from xgboost import plot_importance
 import xgboost as xgb
@@ -74,6 +75,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     
     return fig, fig2
 
+
 def visualize_validation_results(pred_df: pd.DataFrame, ticker: str):
     """
     Creates visualizations of the model validation
@@ -89,58 +91,37 @@ def visualize_validation_results(pred_df: pd.DataFrame, ticker: str):
     """
 
     logger.debug("Vizualizing the results...")
-    model_mape = pred_df['MAPE'].values[0]
-    model_rmse = pred_df['RMSE'].values[0]
+    model_mape = pred_df['MAPE'].mean()
+    model_rmse = pred_df['RMSE'].mean()
 
-    fig, axs = plt.subplots(figsize=(6, 3))
+    # Customize colors and styles
+    colors = {'ACTUAL': 'blue', 'FORECAST': 'orange', 'ERROR': 'red'}
+    sns.set_theme(style="whitegrid")
 
-    # Plot the ACTUALs
-    sns.lineplot(
-        data=pred_df,
-        x="DATE",
-        y="ACTUAL",
-        label="Actuals",
-        ax=axs
-    )
-    sns.scatterplot(
-        data=pred_df,
-        x="DATE",
-        y="ACTUAL",
-        ax=axs,
-        size="ACTUAL",
-        sizes=(80, 80), legend=False
-    )
+    plt.figure(figsize=(7, 5))
 
-    # Plot the FORECASTs
-    sns.lineplot(
-        data=pred_df,
-        x="DATE",
-        y=PREDICTED_COL,
-        label="Forecasted",
-        ax=axs
-    )
-    sns.scatterplot(
-        data=pred_df,
-        x="DATE",
-        y=PREDICTED_COL,
-        ax=axs,
-        size=PREDICTED_COL,
-        sizes=(80, 80), legend=False
-    )
+    # Plot actual and forecast lines
+    sns.lineplot(x='DATE', y='ACTUAL', data=pred_df, marker='o', color=colors['ACTUAL'], label='Actual', markersize=10)
+    sns.lineplot(x='DATE', y='FORECAST', data=pred_df, marker='^', color=colors['FORECAST'], label='Forecast', markersize=10)
 
-    axs.set_title(f"Valdation results for {CATEGORY_COL} - {ticker}\nMAPE: {round(model_mape*100, 2)}% | RMSE: {model_rmse}")
-    axs.set_xlabel("DATE")
-    axs.set_ylabel("R$")
-    axs.tick_params(axis='x', rotation=20)
-    plt.grid()
-    # try:
-    #     plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
+    # Fill the confidence interval area (if you have upper and lower bounds in your DataFrame)
+    # plt.fill_between(validation_df['DATE'], validation_df['LOWER'], validation_df['UPPER'], color='skyblue', alpha=0.3)
 
-    # except FileNotFoundError:
-    #     logger.warning("FORECAST Figure not Saved!")
+    # Add error bars (using MAE as an example)
+    plt.errorbar(pred_df['DATE'], pred_df['FORECAST'], yerr=pred_df['RMSE'], fmt='none', ecolor=colors['ERROR'], capsize=5, alpha=0.5)
 
-    #plt.show()
-    return fig
+    # Customize plot
+    plt.xlabel('Date', fontsize=12)
+    plt.ylabel('Units', fontsize=12)
+    plt.title(f"Forecasting results for {CATEGORY_COL} - {ticker}\nMAPE: {round(model_mape*100, 2)}% | RMSE: {model_rmse}", fontsize=14)
+    plt.legend(loc='lower left')  # Adjust legend position
+    plt.xticks(rotation=20)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d')) # Format x-axis ticks as dates
+    interval = pred_df.shape[0] // 5
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=interval))  # Show daily ticks
+
+    plt.tight_layout()
+    plt.show()
 
 
 def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock_name: str):
@@ -157,7 +138,7 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
 
     logger.info("Vizualizing the results...")
 
-    fig, axs = plt.subplots(figsize=(12, 5), dpi = 2000)
+    fig, axs = plt.subplots(figsize=(12, 5), dpi = 200)
     # Plot the ACTUALs
     sns.lineplot(
         data=historical_df,

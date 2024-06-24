@@ -44,7 +44,7 @@ with open("src/configuration/project_config.yaml", 'r') as f:
     available_models = model_config['available_models']
 
 
-def load_production_model_sklearn(model_type, ticker):
+def load_production_model_sklearn(ticker):
     """
     Loading the Sklearn models saved using the traditional Joblib format.
     """
