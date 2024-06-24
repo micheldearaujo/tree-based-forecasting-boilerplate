@@ -117,7 +117,8 @@ def visualize_validation_results(pred_df: pd.DataFrame, ticker: str):
     plt.legend(loc='lower left')  # Adjust legend position
     plt.xticks(rotation=20)
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d')) # Format x-axis ticks as dates
-    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=1))  # Show daily ticks
+    interval = pred_df.shape[0] // 5
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=interval))  # Show daily ticks
 
     plt.tight_layout()
     plt.show()
@@ -137,7 +138,7 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
 
     logger.info("Vizualizing the results...")
 
-    fig, axs = plt.subplots(figsize=(12, 5), dpi = 2000)
+    fig, axs = plt.subplots(figsize=(12, 5), dpi = 200)
     # Plot the ACTUALs
     sns.lineplot(
         data=historical_df,
