@@ -12,7 +12,12 @@ from typing import Any
 
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_percentage_error,
+    root_mean_squared_error,
+    mean_absolute_error
+)
 
 from src.models.train_model import train_model
 from src.models.predict_model import update_lag_features, update_ma_features
@@ -122,18 +127,18 @@ def update_test_values(X: pd.DataFrame, y: pd.Series, day: int) -> tuple[pd.Data
     return X_test, y_test
 
 
-def calculate_metrics(pred_df, actuals, predictions):
+def calculate_metrics(pred_df, actuals: str, predictions: str):
     logger.debug("Calculating the evaluation metrics...")
     
-    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
-    model_mae = round(mean_absolute_error(actuals, predictions), 2)
-    model_wape = round((pred_df.ACTUAL - pred_df.FORECAST).abs().sum() / pred_df.ACTUAL.sum(), 2)
+    model_mape = round(mean_absolute_percentage_error(pred_df[actuals], pred_df[predictions]), 4)
+    model_rmse = round(root_mean_squared_error(pred_df[actuals], pred_df[predictions]), 2)
+    model_mae = round(mean_absolute_error(pred_df[actuals], pred_df[predictions]), 2)
+    model_wape = round((pred_df[actuals] - pred_df[predictions]).abs().sum() / pred_df[actuals].sum(), 2)
+    bias = ((pred_df[predictions] - pred_df[actuals]) / (pred_df[predictions] + pred_df[actuals])).values.round(3)
 
     pred_df["MAPE"] = model_mape
-    pred_df["MAE"] = model_mae
-    pred_df["WAPE"] = model_wape
     pred_df["RMSE"] = model_rmse
+    pred_df["Bias"] = bias
 
     return pred_df
 
@@ -151,7 +156,7 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
         forecast_horizon (int): The number of days to forecast ahead.
         model_type (Any): The type of model to use (e.g., 'xgb', 'rf', 'et').
         ticker (str): The stock ticker symbol.
-        tune_params (bool, optional): Whether to perform hyperparameter tuning. Defaults to False.
+        load_best_params (bool): If True, loads saved best model parameters; otherwise, uses default parameters. Defaults to False.
 
     Returns:
         pd.DataFrame: A DataFrame containing:
@@ -190,8 +195,6 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
     train_preds = best_model.predict(X_train.drop(columns=["DATE"]))
     train_mape = round(mean_absolute_percentage_error(y_train, train_preds), 4)
     train_rmse = round(np.sqrt(mean_squared_error(y_train, train_preds)), 2)
-    # logger.warning(f'Training MAPE: {train_mape}')
-    # logger.warning(f'Training RMSE: {train_rmse}')
 
     # Plotting the Learning Results
     # if model_type == "XGB":
@@ -218,9 +221,13 @@ def stepwise_prediction(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, mo
         X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
 
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["DATE", "ACTUAL", PREDICTED_COL])
-    pred_df = calculate_metrics(pred_df, actuals, predictions)
-    pred_df["MODEL_TYPE"] = str(type(best_model)).split('.')[-1][:-2]
-    pred_df["CLASS"] = "Testing"
+
+    # pred_df = calculate_metrics(pred_df, actuals, predictions)
+    # pred_df["MODEL_TYPE"] = type(best_model).__name__
+    # pred_df["CLASS"] = "Testing"
+    # pred_df["TRAINING_MAPE"] = train_mape
+    # pred_df["TRAINING_RMSE"] = train_rmse
+    pred_df["MODEL_TYPE"] = type(best_model).__name__
     pred_df["TRAINING_MAPE"] = train_mape
     pred_df["TRAINING_RMSE"] = train_rmse
     
