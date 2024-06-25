@@ -118,7 +118,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, ticker: str):
     plt.xticks(rotation=20)
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d')) # Format x-axis ticks as dates
     interval = pred_df.shape[0] // 5
-    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=interval))  # Show daily ticks
+    plt.gca().xaxis.set_major_locator(mdates.MonthLocator(interval=interval))  # Show daily ticks
 
     plt.tight_layout()
     plt.show()
