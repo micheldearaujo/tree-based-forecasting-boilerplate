@@ -6,32 +6,31 @@ sys.path.insert(0,'.')
 from src.models.predict_model import *
 
 
-def inference_pipeline(models_list: list, ticker_list: list, write_to_table=True):
+def inference_pipeline(models_list: list[str], ticker_list: list[str], write_to_table=True):
     """
-    Executes the model inference pipeline to generate stock price predictions.
+    Generates predictions using a pre-trained model for specified tickers.
 
-    This function performs the following steps:
-
-    1. Loads the featurized dataset from 'processed_stock_prices.csv'.
-    2. Filters the dataset by ticker symbol if provided.
-    3. Filters the models to be used for inference based on the provided model type.
-    4. For each selected ticker symbol and model type:
-        a. Loads the corresponding production model.
-        b. Creates a future DataFrame for the forecast horizon.
-        c. Generates predictions using the loaded model.
-    5. Concatenates all predictions into a single DataFrame.
-    6. Optionally writes the predictions to a file or database table.
+    This function iterates through a list of stock tickers and applies a loaded production model to forecast future prices.
+    It constructs a future dataframe for each ticker based on a defined forecast horizon,
+    performs iterative predictions, and consolidates the results. Optionally, it appends the predictions to a CSV file.
 
     Args:
-        model_type (str, optional): The type of model to use for inference. If None, all available models in the configuration will be used. Defaults to None.
-        ticker (str, optional): The ticker symbol of the stock to predict. If None, predictions are made for all stocks in the dataset. Defaults to None.
-        write_to_table (bool, optional): If True, the predictions will be written to a file or database table. Defaults to True.
+        models_list (list): List of available models (currently unused in the function).
+        ticker_list (list): List of ticker symbols for stocks to predict.
+        write_to_table (bool, optional): If True, appends predictions to a CSV file. Defaults to True.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the predictions for all selected ticker symbols and model types.
+        pd.DataFrame: A DataFrame containing predictions for each ticker, including columns for DATE, PREDICTION, MODEL_TYPE, and RUN_DATE.
 
-    Raises:
-        ValueError: If an invalid model type is provided.
+    Process:
+        1. Loads featurized dataset.
+        2. Filters dataset by each ticker in ticker_list.
+        3. Loads the production model for the current ticker.
+        4. Creates a future DataFrame for the forecast horizon.
+        5. Performs iterative predictions using the loaded model.
+        6. Appends predictions with model type and run date.
+        7. Concatenates all predictions.
+        8. (Optional) Appends predictions to a CSV file.
     """
     logger.debug("Loading the featurized dataset...")
 
@@ -42,7 +41,7 @@ def inference_pipeline(models_list: list, ticker_list: list, write_to_table=True
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy()
 
         # for model_type in models_list:
-        logger.debug(f"Performing inferece for ticker [{ticker}]...")# using model [{model_type}]...")
+        logger.debug(f"Performing inferece for ticker [{ticker}]...")
 
         current_prod_model = load_production_model_sklearn(ticker)
         model_name = type(current_prod_model).__name__
@@ -50,7 +49,7 @@ def inference_pipeline(models_list: list, ticker_list: list, write_to_table=True
         logger.debug("Creating the future dataframe...")
         future_df = make_future_df(FORECAST_HORIZON, filtered_feature_df, features_list)
 
-        logger.debug("Predicting...")
+        logger.debug("Predicting iteratively...")
         predictions_df = make_iterative_predictions(
             model=current_prod_model,
             future_df=future_df,
