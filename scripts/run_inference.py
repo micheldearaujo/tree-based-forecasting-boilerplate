@@ -45,6 +45,7 @@ def inference_pipeline(models_list: list[str], ticker_list: list[str], write_to_
 
         current_prod_model = load_production_model_sklearn(ticker)
         model_name = type(current_prod_model).__name__
+        logger.info(f"Loaded production model {model_name} for ticker {ticker}.")
 
         logger.debug("Creating the future dataframe...")
         future_df = make_future_df(FORECAST_HORIZON, filtered_feature_df, features_list)
