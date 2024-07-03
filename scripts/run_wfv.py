@@ -19,8 +19,34 @@ from src.models.evaluate_model import *
 
 def walk_forward_validation(load_best_params, models_list, ticker_list, wfv_steps=0, wfv_size=FORECAST_HORIZON, write_to_table=True) -> pd.DataFrame:
     """
-    Performs Walkf Forward Validation, i.e, training and testing the models
-    in multiple time-frames.
+    Performs Walk Forward Validation (WFV) for your forecasting models.
+
+    WFV involves iteratively training and testing models on expanding time windows to simulate real-world forecasting scenarios.
+    This function evaluates the performance of specified models on multiple time frames for given stock tickers.
+
+    Args:
+        load_best_params (bool): If True, loads saved best model parameters; otherwise, uses default parameters.
+        models_list (list): List of model types to evaluate (e.g., ["LinearRegression", "RandomForest"]).
+        ticker_list (list): List of stock ticker symbols for validation.
+        wfv_steps (int, optional): Number of validation steps (windows). Defaults to 0.
+        wfv_size (int, optional): Size of each validation window (in days). Defaults to FORECAST_HORIZON.
+        write_to_table (bool, optional): If True, writes results to a CSV file. Defaults to True.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing detailed validation results for each model, ticker, and window, including predictions, actual values, calculated metrics, and metadata.
+
+    Process:
+        1. Loads featurized dataset.
+        2. Iterates through each ticker symbol in `ticker_list`.
+        3. Iterates through each model type in `models_list`.
+        4. Calculates the start date for WFV based on `wfv_steps` and `wfv_size`.
+        5. Performs `wfv_steps` iterations:
+            a. Filters data up to the current window's end date.
+            b. Calls `stepwise_prediction` to train the model and generate predictions.
+            c. Calculates performance metrics (e.g., using `calculate_metrics`).
+            d. Appends results to `validation_report_df` with metadata.
+            e. Expands the training data window for the next step.
+        6. (Optional) Appends results to a CSV file if `write_to_table` is True. 
     """
 
     validation_report_df = pd.DataFrame()
@@ -54,6 +80,8 @@ def walk_forward_validation(load_best_params, models_list, ticker_list, wfv_step
                 )
 
                 predictions_df[CATEGORY_COL] = ticker
+                predictions_df = calculate_metrics(predictions_df)
+                predictions_df["CLASS"] = "Testing"
                 predictions_df["TRAINING_DATE"] = dt.datetime.today().date()
                 validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
 

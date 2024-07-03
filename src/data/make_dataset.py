@@ -94,7 +94,7 @@ def fetch_historical_stock_price_data(ticker: str, period: str, interval: str) -
     stock_price_df = yfin.Ticker(ticker).history(period=period, interval=interval)
     
     stock_price_df[CATEGORY_COL] = ticker
-    stock_price_df = stock_price_df[[CATEGORY_COL, TARGET_COL.title()]]
+    #stock_price_df = stock_price_df[[CATEGORY_COL, TARGET_COL.title()]]
     stock_price_df = stock_price_df.reset_index()
     stock_price_df["Date"] = pd.to_datetime(stock_price_df["Date"].dt.date)
 

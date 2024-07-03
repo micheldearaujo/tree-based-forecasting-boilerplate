@@ -73,19 +73,10 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series, model_type: str, tick
         y_train (pandas.Series or numpy.ndarray): The training target values.
         model_type (str): The type of model to train. Choose from 'XGB' (XGBoost) or 'ET' (ExtraTrees).
         ticker_symbol (str): The ticker symbol representing the time series being modeled.
-        tune_params (bool, optional): Whether to tune hyperparameters using grid search. Defaults to False.
-        save_model (bool, optional): Whether to save the trained model to disk. Defaults to True.
+        load_best_params (bool): If True, loads saved best model parameters; otherwise, uses default parameters. Defaults to True.
 
     Returns:
         The trained regression model object.
-
-    Raises:
-        ValueError: If an invalid `model_type` is provided.
-
-    Notes:
-        - If `tune_params` is True, a grid search will be performed using predefined hyperparameter grids to find the best set of parameters for the given model type.
-        - The trained model will be saved in the directory specified by `MODELS_PATH` (which should be defined elsewhere in your code)
-            using the format "{model_type}/{ticker_symbol}.joblib".
     """
     base_params = all_base_params[model_type]
 

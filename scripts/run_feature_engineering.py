@@ -12,6 +12,7 @@ if __name__ == '__main__':
 
     logger.debug("Loading the raw dataset to featurize it...")
     raw_df = pd.read_csv(os.path.join(RAW_DATA_PATH, RAW_DATA_NAME), parse_dates=["DATE"])
+    print(raw_df)
 
     logger.info("Featurizing the dataset...")
     features_list = config['features_list']
