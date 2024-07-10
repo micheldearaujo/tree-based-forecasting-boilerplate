@@ -67,9 +67,9 @@ def initialize_lag_values(df: pd.DataFrame, features_list: list, target_column: 
         pd.DataFrame: The updated future_df with the calculated lag feature.
     """
     for feature in filter(lambda f: "LAG" in f, features_list):
-
         lag_value = int(feature.split("_")[-1])
         future_df.loc[future_df.index.min(), f"{target_column}_LAG_{lag_value}"] = df[target_column].iloc[-lag_value]
+
     return future_df
 
 
@@ -172,10 +172,10 @@ def update_ma_features(future_df: pd.DataFrame, day: int, past_target_values: li
 def make_iterative_predictions(model: Any, future_df: pd.DataFrame, past_target_values: list) -> pd.DataFrame:
 
     """
-    Make predictions for the next `forecast_horizon` days using a XGBoost model
+    Make predictions for the next `forecast_horizon` periods using a Tree-based model.
     
     Parameters:
-        model (sklearn model): Scikit-learn best model to use to perform inferece.
+        model (sklearn model): Scikit-learn tree-based best model to use to perform inferece.
         future_df (pd.DataFrame): The "Feature" DataFrame (X) with future index.
         past_target_values (list): The target variable's historical values to calculate the moving averages on.
         
@@ -206,3 +206,39 @@ def make_iterative_predictions(model: Any, future_df: pd.DataFrame, past_target_
     future_df_feat[PREDICTED_COL] = future_df_feat[PREDICTED_COL].astype('float64').round(2)
 
     return future_df_feat
+
+
+def make_iterative_predictions_ensemble(model: Any, future_df: pd.DataFrame, past_target_values: list) -> pd.DataFrame:
+
+    """
+    Make predictions for the next `forecast_horizon` periods using a Tree-based model.
+    
+    Parameters:
+        model (sklearn model): Scikit-learn tree-based best model to use to perform inferece.
+        future_df (pd.DataFrame): The "Feature" DataFrame (X) with future index.
+        past_target_values (list): The target variable's historical values to calculate the moving averages on.
+        
+    Returns:
+        pd.DataFrame: The future DataFrame with forecasts.
+    """
+
+    future_df_feat = future_df.copy()
+    all_features = future_df_feat.columns
+    predictions = []
+
+    FH_WITHOUT_WEEKENDS = len(future_df_feat)
+    LAST_DAY = FH_WITHOUT_WEEKENDS-1
+
+    for day in range(0, FH_WITHOUT_WEEKENDS):
+
+        X_inference = future_df_feat.drop(columns=["DATE", CATEGORY_COL]).loc[[day]]
+        prediction = model.predict(X_inference)[0]
+
+        predictions.append(prediction)
+        past_target_values.append(prediction)
+
+        if day < LAST_DAY:
+            future_df_feat = update_lag_features(future_df_feat, day, past_target_values, all_features)
+            future_df_feat = update_ma_features(future_df_feat, day, past_target_values, all_features)
+    
+    return predictions
