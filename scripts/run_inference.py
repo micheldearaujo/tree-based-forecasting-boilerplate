@@ -40,7 +40,6 @@ def inference_pipeline(models_list: list[str], ticker_list: list[str], write_to_
     for ticker in ticker_list:
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy()
 
-        # for model_type in models_list:
         logger.debug(f"Performing inferece for ticker [{ticker}]...")
 
         current_prod_model = load_production_model_sklearn(ticker)
@@ -80,8 +79,9 @@ def inference_pipeline(models_list: list[str], ticker_list: list[str], write_to_
 if __name__ == "__main__":
 
     logger.info("Starting the Inference pipeline...")
-    inference_pipeline(
+    final_predictions_df = inference_pipeline(
         models_list = model_config["available_models"],
         ticker_list = data_config["ticker_list"],
     )
+    print(final_predictions_df)
     logger.info("Inference Pipeline completed successfully!")
