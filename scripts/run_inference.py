@@ -37,26 +37,30 @@ def inference_pipeline(models_list: list[str], ticker_list: list[str], write_to_
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
     final_predictions_df = pd.DataFrame()
 
-    for ticker in ticker_list:
-        filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy()
+    try:
+        for ticker in feature_df[CATEGORY_COL].unique():
+            filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy()
 
-        logger.debug(f"Performing inferece for ticker [{ticker}]...")
+            logger.debug(f"Performing inferece for ticker [{ticker}]...")
 
-        current_prod_model = load_production_model_sklearn(ticker)
-        model_name = type(current_prod_model).__name__
-        logger.info(f"Loaded production model {model_name} for ticker {ticker}.")
+            current_prod_model = load_production_model_sklearn(ticker)
+            model_name = type(current_prod_model).__name__
+            logger.info(f"Loaded production model {model_name} for ticker {ticker}.")
 
-        logger.debug("Creating the future dataframe...")
-        future_df = make_future_df(FORECAST_HORIZON, filtered_feature_df, features_list)
+            logger.debug("Creating the future dataframe...")
+            future_df = make_future_df(FORECAST_HORIZON, filtered_feature_df, features_list)
 
-        logger.debug("Predicting iteratively...")
-        predictions_df = make_iterative_predictions(
-            model=current_prod_model,
-            future_df=future_df,
-            past_target_values=list(filtered_feature_df[TARGET_COL].values)
-        )
-        predictions_df['MODEL_TYPE'] = model_name
-        final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
+            logger.debug("Predicting iteratively...")
+            predictions_df = make_iterative_predictions(
+                model=current_prod_model,
+                future_df=future_df,
+                past_target_values=list(filtered_feature_df[TARGET_COL].values)
+            )
+            predictions_df['MODEL_TYPE'] = model_name
+            final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
+
+    except Exception as e:
+        print(f"Deu Erro: ", e)
 
     # Add the run date
     RUN_DATE = dt.datetime.today().date()

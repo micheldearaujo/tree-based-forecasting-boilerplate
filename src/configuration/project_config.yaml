@@ -21,7 +21,7 @@ data_config:
     models_path: ./models
 
   table_names:
-    raw_table_name: raw_df.csv
+    raw_table_name: dados_historicos_ate_maio.csv
     processed_table_name: processed_df.csv
     output_table_name: forecast_output_df.csv
     model_performance_table_name: model_performance_daily.csv
@@ -34,9 +34,9 @@ features_list:
   - MONTH
   - QUARTER
   - YEAR
-  - CLOSE_LAG_1
-  - CLOSE_LAG_2
-  - CLOSE_MA_3
+  - QUANTIDADE_LAG_1
+  - QUANTIDADE_LAG_2
+  - QUANTIDADE_MA_3
 
 
 model_config:
@@ -45,13 +45,11 @@ model_config:
   validation_metric: MAPE
   optimization_metric: MSE
   scoring_metric: neg_mean_absolute_error
-  model_name: The_Predictor
-  target_col: CLOSE
+  model_name: COPA_VENDAS
+  target_col: QUANTIDADE
   predicted_col: FORECAST
-  category_col: TICKER
+  category_col: UNIDADE
   forecast_horizon: 7
   wfv_steps: 0
   available_models:
     - XGB
-    - ET
-    - ADA

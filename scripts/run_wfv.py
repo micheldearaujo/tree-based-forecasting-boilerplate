@@ -54,8 +54,7 @@ def walk_forward_validation(load_best_params, models_list, ticker_list, wfv_step
     logger.debug("Loading the featurized dataset..")
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
 
-
-    for ticker in ticker_list:
+    for ticker in feature_df[CATEGORY_COL].unique():
         filtered_feature_df = feature_df[feature_df[CATEGORY_COL] == ticker].copy().drop(CATEGORY_COL, axis=1)
         
         for model_type in models_list:
@@ -105,7 +104,7 @@ def walk_forward_validation(load_best_params, models_list, ticker_list, wfv_step
 if __name__ == "__main__":
 
     validation_report_df = walk_forward_validation(
-        load_best_params = True,
+        load_best_params = False,
         models_list = model_config["available_models"],
         ticker_list = data_config["ticker_list"],
         wfv_steps = WFV_STEPS,

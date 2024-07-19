@@ -107,8 +107,10 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool = True)
     """
     logger.debug("Building features...")
     feature_df = pd.DataFrame()
+    print(raw_df[CATEGORY_COL])
 
     for ticker in raw_df[CATEGORY_COL].unique():
+        print(ticker)
         logger.debug(f"Building features for ticker [{ticker}]...")
         raw_df_filtered = raw_df[raw_df[CATEGORY_COL] == ticker].copy()
         

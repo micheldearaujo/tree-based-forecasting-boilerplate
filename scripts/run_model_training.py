@@ -27,9 +27,10 @@ def training_pipeline(models_list: list[str], ticker_list: list[str], load_best_
     """
     logger.debug("Loading the featurized dataset..")
     feature_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, PROCESSED_DATA_NAME), parse_dates=["DATE"])
+    feature_df["DATE"] = feature_df["DATE"].apply(lambda x: x.date())
     logger.info(f"Last available date for training: {feature_df['DATE'].max()}.")
 
-    for ticker_symbol in ticker_list:
+    for ticker_symbol in feature_df[CATEGORY_COL].unique():
         ticker_df_feat = feature_df[feature_df[CATEGORY_COL] == ticker_symbol].drop(CATEGORY_COL, axis=1).copy()
         hold_out_date = ticker_df_feat["DATE"].max() - relativedelta(days=FORECAST_HORIZON)
         logger.info(f"Last available date for model selection: {hold_out_date}.")
@@ -54,17 +55,19 @@ def training_pipeline(models_list: list[str], ticker_list: list[str], load_best_
 
         # Stage to "prod" (simulate by saving the model)
         prod_model_path = os.path.join(MODELS_PATH, ticker_symbol, 'prod_model.joblib')
+        os.makedirs(MODELS_PATH, exist_ok=True)
+        os.makedirs(os.path.join(MODELS_PATH, ticker_symbol), exist_ok=True)
         joblib.dump(best_model, prod_model_path) 
 
         logger.warning(f"\nStaged model '{best_model_name}' to production at: {prod_model_path}")
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
 
     logger.info("Starting the training pipeline...")
     training_pipeline(
         models_list = model_config["available_models"],
         ticker_list = data_config["ticker_list"],
-        load_best_params = True,
+        load_best_params = False,
     )
     logger.info("Training Pipeline completed successfully!")
