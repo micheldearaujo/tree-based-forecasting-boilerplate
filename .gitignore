@@ -22,9 +22,18 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+*.pyc
+src/__pycache__/
 
 # mlruns
 mlruns/
+catboost_info/
+# The Virtal Env folder
+.env/
+*.html
+# *.png
+*.pkl
+*.zip
 
 # reports and figures
 
@@ -55,6 +64,13 @@ coverage.xml
 # Django stuff:
 *.log
 
+# Logging
+*.log
+
+*.csv
+*.xlsx
+*.xlsb
+
 # Sphinx documentation
 docs/_build/
 
@@ -83,7 +99,8 @@ target/
 # notebooks/
 
 # exclude data from source control by default
-#/data/
+./data/
+./catboost_info/
 
 # Mac OS-specific storage files
 .DS_Store
